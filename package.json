@@ -1,0 +1,53 @@
+{
+  "name": "@ciderjs/city-gas",
+  "version": "0.0.0",
+  "description": "",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite playground",
+    "tsc": "tsgo --noEmit",
+    "check": "biome check --write",
+    "build": "unbuild",
+    "test": "vitest run"
+  },
+  "keywords": [
+    "gas",
+    "google-apps-script",
+    "react",
+    "router"
+  ],
+  "author": "ciderjs/luth",
+  "license": "MIT",
+  "packageManager": "pnpm@10.18.3",
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.6",
+    "@ciderjs/city-gas": "./",
+    "@ciderjs/gasnuki": "^0.3.2",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^24.8.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@typescript/native-preview": "7.0.0-dev.20251019.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "fast-glob": "^3.3.3",
+    "jiti": "^2.6.1",
+    "jsdom": "^27.0.1",
+    "typescript": "^5.9.3",
+    "unbuild": "^3.6.1",
+    "vite": "^7.1.10",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4"
+  }
+}
