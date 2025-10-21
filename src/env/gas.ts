@@ -1,4 +1,4 @@
-import type { Adapter } from '.';
+import type { Adapter } from '@/env';
 
 export const gasAdapter: Adapter = {
   push: (url: string) => {

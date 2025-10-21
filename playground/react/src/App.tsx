@@ -1,10 +1,12 @@
 import React from 'react';
 import {
   createRouter,
+} from '@ciderjs/city-gas';
+import {
   RouterProvider,
   useNavigate,
   RouterOutlet,
-} from 'city-gas';
+} from '@ciderjs/city-gas/react';
 import type { RouteNames, RouteParams } from './generated/router.d';
 import { pages } from './generated/routes';
 

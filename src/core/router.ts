@@ -1,4 +1,4 @@
-import { getAdapter } from '../env';
+import { getAdapter } from '@/env';
 
 type Listener<
   RouteNames extends string,
