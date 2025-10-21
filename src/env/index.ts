@@ -1,5 +1,5 @@
-import { browserAdapter } from './browser';
-import { gasAdapter } from './gas';
+import { browserAdapter } from '@/env/browser';
+import { gasAdapter } from '@/env/gas';
 
 export type LocationChangeCallback = (location: string) => void;
 

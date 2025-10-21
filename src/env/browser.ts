@@ -1,4 +1,4 @@
-import type { Adapter, LocationChangeCallback } from '.';
+import type { Adapter, LocationChangeCallback } from '@/env';
 
 export const browserAdapter: Adapter = {
   push: (url: string) => {

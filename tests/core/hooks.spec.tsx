@@ -1,8 +1,12 @@
 import { act, renderHook } from '@testing-library/react';
 import type React from 'react';
 import { describe, expect, it } from 'vitest';
-import { useNavigate, useParams, useRoute } from '../../src/core/hooks';
-import { RouterProvider } from '../../src/core/provider';
+import {
+  useNavigate,
+  useParams,
+  useRoute,
+} from '../../src/adapters/react/hooks';
+import { RouterProvider } from '../../src/adapters/react/provider';
 import { createRouter } from '../../src/core/router';
 
 type AppRouteNames = '' | 'about' | 'users';

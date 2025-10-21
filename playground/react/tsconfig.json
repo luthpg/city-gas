@@ -22,9 +22,9 @@
 
     /* Paths */
     "paths": {
-      "city-gas": ["../../src"]
+      "@ciderjs/city-gas": ["../.."]
     }
   },
   "include": ["src"],
-  "references": [{ "path": "../tsconfig.json" }]
+  "references": [{ "path": "../../tsconfig.json" }]
 }

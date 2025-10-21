@@ -33,9 +33,9 @@ const Navigation = () => {
   const navigate = useNavigate<RouteNames, RouteParams>();
   return (
     <nav>
-      <button onClick={() => navigate('', {})}>Home</button>
-      <button onClick={() => navigate('about', {})}>About</button>
-      <button onClick={() => navigate('user', { id: '123' })}>User 123</button>
+      <button type="button" onClick={() => navigate('', {})}>Home</button>
+      <button type="button" onClick={() => navigate('about', {})}>About</button>
+      <button type="button" onClick={() => navigate('user', { id: '123' })}>User 123</button>
     </nav>
   );
 };
