@@ -1,87 +1,119 @@
-import { describe, expect, it, vi } from 'vitest';
-import { createRouter, serializeParams } from '../../src/core/router';
+import type { Router } from '@/core/router';
+import { createRouter, serializeParams } from '@/core/router';
 
-describe('serializeParams', () => {
-  it('should serialize simple key-value pairs', () => {
-    const params = { id: '123', user: 'test', count: 5, active: true };
-    expect(serializeParams(params)).toBe(
-      'id=123&user=test&count=5&active=true',
+// Mock the entire module
+const mockAdapter = {
+  getLocation: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  onChange: vi.fn(),
+};
+vi.mock('@/env', () => ({
+  getAdapter: () => mockAdapter,
+  setAdapter: vi.fn(), // It's mocked, but we won't use it
+}));
+
+type AppRouteNames = '' | 'about' | 'users/show';
+interface AppRouteParams {
+  '': {};
+  about: {};
+  'users/show': { userId: string; filter?: { type: string } };
+}
+
+describe('Core Router', () => {
+  let router: Router<AppRouteNames, AppRouteParams>;
+
+  beforeEach(() => {
+    // Reset mocks before each test
+    vi.clearAllMocks();
+    mockAdapter.getLocation.mockReturnValue('?page=');
+
+    router = createRouter<AppRouteNames, AppRouteParams>(
+      {
+        '': () => null,
+        about: () => null,
+        'users/show': () => null,
+      },
+      { defaultRouteName: '' },
     );
   });
 
-  it('should ignore undefined values', () => {
-    const params = { id: '123', user: undefined, count: 0 };
-    expect(serializeParams(params)).toBe('id=123&count=0');
+  it('should initialize with the default route', () => {
+    const currentRoute = router.getCurrentRoute();
+    expect(currentRoute.name).toBe('');
+    expect(currentRoute.params).toEqual({});
   });
 
-  it('should handle an empty params object', () => {
-    const params = {};
-    expect(serializeParams(params)).toBe('');
+  it('should navigate to a new route and update the URL', () => {
+    router.navigate('about', {});
+    const currentRoute = router.getCurrentRoute();
+    expect(currentRoute.name).toBe('about');
+    expect(mockAdapter.push).toHaveBeenCalledWith('?page=about');
   });
 
-  it('should serialize array values', () => {
-    const params = { tags: ['a', 'b', 'c'], ids: [1, 2] };
-    expect(serializeParams(params)).toBe('tags=a&tags=b&tags=c&ids=1&ids=2');
+  it('should navigate with params and serialize them correctly', () => {
+    router.navigate('users/show', { userId: '42' });
+    const currentRoute = router.getCurrentRoute();
+    expect(currentRoute.name).toBe('users/show');
+    expect(currentRoute.params).toEqual({ userId: '42' });
+    expect(mockAdapter.push).toHaveBeenCalledWith('?page=users/show&userId=42');
   });
 
-  it('should serialize object values as JSON strings', () => {
-    const params = { filter: { tab: 'general', show: false } };
-    const expected = `filter=${encodeURIComponent('{"tab":"general","show":false}')}`;
-    expect(serializeParams(params)).toBe(expected);
+  it('should handle complex nested params during navigation', () => {
+    const params = { userId: '123', filter: { type: 'active' } };
+    router.navigate('users/show', params);
+    const serialized = serializeParams(params);
+    expect(mockAdapter.push).toHaveBeenCalledWith(
+      `?page=users/show&${serialized}`,
+    );
+    expect(serialized).toContain('filter=%7B%22type%22%3A%22active%22%7D'); // JSON.stringify
   });
 
-  it('should handle a mix of types', () => {
-    const params = {
-      id: 'user-1',
-      roles: ['admin', 'editor'],
-      prefs: { theme: 'dark', lang: 'en' },
-      lastLogin: undefined,
-    };
-    const expected = `id=user-1&roles=admin&roles=editor&prefs=${encodeURIComponent(
-      '{"theme":"dark","lang":"en"}',
-    )}`;
-    expect(serializeParams(params)).toBe(expected);
-  });
-});
+  it('should subscribe to route changes and notify listeners', () => {
+    const listener = vi.fn();
+    const unsubscribe = router.subscribe(listener);
 
-describe('router.navigate', () => {
-  it('serializes simple params', () => {
-    const router = createRouter<{ detail: { id: string } }, 'detail'>({
-      detail: () => null,
+    // Simulate URL change from adapter
+    const onChangeCallback = mockAdapter.onChange.mock.calls[0][0];
+    onChangeCallback('?page=about');
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'about' }),
+    );
+
+    unsubscribe();
+    onChangeCallback('?page=');
+    expect(listener).toHaveBeenCalledTimes(1); // Should not be called after unsubscribe
+  });
+
+  it('should use replace option when navigating', () => {
+    router.navigate('about', {}, { replace: true });
+    expect(mockAdapter.replace).toHaveBeenCalledWith('?page=about');
+    expect(mockAdapter.push).not.toHaveBeenCalled();
+  });
+
+  describe('serializeParams', () => {
+    it('should serialize basic objects', () => {
+      const params = { a: 1, b: 'hello' };
+      expect(serializeParams(params)).toBe('a=1&b=hello');
     });
-    const spy = vi.spyOn(window.history, 'pushState');
-    router.navigate('detail', { id: '123' });
-    expect(spy).toHaveBeenCalledWith(
-      expect.anything(),
-      '',
-      '?page=detail&id=123',
-    );
-  });
 
-  it('serializes array params', () => {
-    const router = createRouter<{ list: { tags: string[] } }, 'list'>({
-      list: () => null,
+    it('should handle array values', () => {
+      const params = { tags: ['a', 'b'] };
+      expect(serializeParams(params)).toBe('tags=a&tags=b');
     });
-    const spy = vi.spyOn(window.history, 'pushState');
-    router.navigate('list', { tags: ['a', 'b'] });
-    expect(spy).toHaveBeenCalledWith(
-      expect.anything(),
-      '',
-      '?page=list&tags=a&tags=b',
-    );
-  });
 
-  it('serializes nested object params', () => {
-    const router = createRouter<
-      { profile: { filter: { tab: string } } },
-      'profile'
-    >({ profile: () => null });
-    const spy = vi.spyOn(window.history, 'pushState');
-    router.navigate('profile', { filter: { tab: 'general' } });
-    expect(spy).toHaveBeenCalledWith(
-      expect.anything(),
-      '',
-      `?page=profile&filter=${encodeURIComponent('{"tab":"general"}')}`,
-    );
+    it('should handle object values by JSON.stringifying them', () => {
+      const params = { filter: { type: 'user', active: true } };
+      const expected =
+        'filter=%7B%22type%22%3A%22user%22%2C%22active%22%3Atrue%7D';
+      expect(serializeParams(params)).toBe(expected);
+    });
+
+    it('should ignore undefined values', () => {
+      const params = { a: 1, b: undefined };
+      expect(serializeParams(params)).toBe('a=1');
+    });
   });
 });
