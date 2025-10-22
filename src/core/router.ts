@@ -1,21 +1,33 @@
 import { getAdapter } from '@/env';
+import type { Register } from '@/index';
+
+type GetRouteNames<T> = T extends { RouteNames: infer R } ? R : string;
+type GetRouteParams<T, R extends string> = T extends { RouteParams: infer P }
+  ? P
+  : Record<R, any>;
+
+export type RegisteredRouteNames = GetRouteNames<Register>;
+export type RegisteredRouteParams = GetRouteParams<
+  Register,
+  RegisteredRouteNames
+>;
 
 type Listener<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > = (route: Route<RouteNames, RouteParams>) => void;
 
 export interface Route<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > {
   name: RouteNames;
   params: RouteParams[RouteNames];
 }
 
 export interface Router<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > {
   navigate: <N extends RouteNames>(
     name: N,
@@ -28,8 +40,8 @@ export interface Router<
 }
 
 function parseLocation<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 >(location: string): Route<RouteNames, RouteParams> {
   const search = new URLSearchParams(location);
   let name = search.get('page') as RouteNames;
@@ -79,7 +91,7 @@ export function serializeParams(params: Record<string, any>): string {
 
 export function createRouter<
   RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 >(
   pages: Record<RouteNames, React.FC<any>>,
   options?: {

@@ -7,11 +7,11 @@ import {
   useNavigate,
   RouterOutlet,
 } from '@ciderjs/city-gas/react';
-import type { RouteNames, RouteParams } from './generated/router.d';
+import './generated/router.d';
 import { pages } from './generated/routes';
 
 // 1. 生成された pages マップをルーターに渡す
-const router = createRouter<RouteNames, RouteParams>(pages, { defaultRouteName: '' });
+const router = createRouter(pages, { defaultRouteName: '' });
 
 // 2. ナビゲーションUI
 const Navigation = () => {

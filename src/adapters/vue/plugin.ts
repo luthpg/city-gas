@@ -1,11 +1,17 @@
 import { type App, inject, type Ref, ref } from 'vue';
-import type { Route, Router } from '@/core/router';
+import type {
+  RegisteredRouteNames,
+  RegisteredRouteParams,
+  Route,
+  Router,
+} from '@/core/router';
 
 import { routerKey } from './key';
 
-export function createRouterPlugin<R extends string, P extends Record<R, any>>(
-  router: Router<R, P>,
-) {
+export function createRouterPlugin<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+>(router: Router<R, P>) {
   return {
     install(app: App) {
       const route = ref(router.getCurrentRoute());
@@ -22,7 +28,10 @@ export function createRouterPlugin<R extends string, P extends Record<R, any>>(
   };
 }
 
-export function useRouterContext<R extends string, P extends Record<R, any>>() {
+export function useRouterContext<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+>() {
   const ctx = inject(routerKey);
   if (!ctx) throw new Error('city-gas: must be used within RouterPlugin');
   return ctx as {
