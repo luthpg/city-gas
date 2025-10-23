@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import { cityGasRouter } from "../../dist/plugin.mjs";
+import { cityGasRouter } from "../../src/plugin";
 import path from "path";
 
 export default defineConfig({
@@ -10,7 +10,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'city-gas': path.resolve(__dirname, '../../dist'),
+      '@ciderjs/city-gas/vue': path.resolve(__dirname, '../../src/adapters/vue'),
+      '@ciderjs/city-gas': path.resolve(__dirname, '../../src'),
     },
   },
 });

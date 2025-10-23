@@ -2,7 +2,7 @@ import React from 'react';
 import type { Router } from '@/core/router';
 
 export const RouterContext = React.createContext<{
-  router: Router<any, any>;
+  router: Router;
 } | null>(null);
 
 export function RouterProvider<R extends string, P extends Record<R, any>>({

@@ -1,32 +1,37 @@
-import { type App, inject, type Ref, ref } from 'vue';
-import type { Route, Router } from '@/core/router';
-
+import { type App, inject } from 'vue';
+import type {
+  RegisteredRouteNames,
+  RegisteredRouteParams,
+  Router,
+} from '@/core/router';
 import { routerKey } from './key';
 
-export function createRouterPlugin<R extends string, P extends Record<R, any>>(
-  router: Router<R, P>,
-) {
+export type RouterContext<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+> = {
+  router: Router<R, P>;
+};
+
+export function createRouterPlugin<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+>(router: Router<R, P>) {
   return {
     install(app: App) {
-      const route = ref(router.getCurrentRoute());
-
-      app.provide(RouterSymbol, {
-        router,
-        route,
-      });
-
-      router.subscribe((r) => {
-        route.value = r;
-      });
+      const context: RouterContext<R, P> = { router };
+      app.provide(routerKey, context);
     },
   };
 }
 
-export function useRouterContext<R extends string, P extends Record<R, any>>() {
+export function useRouterContext<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+>() {
   const ctx = inject(routerKey);
-  if (!ctx) throw new Error('city-gas: must be used within RouterPlugin');
-  return ctx as {
-    router: Router<R, P>;
-    route: Ref<Route<R, P>>;
-  };
+  if (!ctx) {
+    throw new Error('useRouterContext must be used within a RouterPlugin');
+  }
+  return ctx as RouterContext<R, P>;
 }

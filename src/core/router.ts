@@ -1,60 +1,82 @@
 import { getAdapter } from '@/env';
+import type { Register } from '@/index';
+
+type GetRouteNames<T> = T extends { RouteNames: infer R } ? R : string;
+type GetRouteParams<T, R extends string> = T extends { RouteParams: infer P }
+  ? P
+  : Record<R, any>;
+
+export type RegisteredRouteNames = GetRouteNames<Register>;
+export type RegisteredRouteParams = GetRouteParams<
+  Register,
+  RegisteredRouteNames
+>;
 
 type Listener<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > = (route: Route<RouteNames, RouteParams>) => void;
 
 export interface Route<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > {
   name: RouteNames;
   params: RouteParams[RouteNames];
 }
 
 export interface Router<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 > {
   navigate: <N extends RouteNames>(
     name: N,
-    params: RouteParams[N],
-    options?: { replace?: boolean },
+    ...args: [keyof RouteParams[N]] extends [never]
+      ? [
+          params?: RouteParams[N] | undefined | null,
+          options?: { replace?: boolean },
+        ]
+      : [params: RouteParams[N], options?: { replace?: boolean }]
   ) => void;
   subscribe: (listener: Listener<RouteNames, RouteParams>) => () => void;
   getCurrentRoute: () => Route<RouteNames, RouteParams>;
-  pages: Record<RouteNames, React.FC<any>>;
+  pages: Record<RouteNames, React.ComponentType<any>>;
 }
 
 function parseLocation<
-  RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteNames extends string = RegisteredRouteNames,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 >(location: string): Route<RouteNames, RouteParams> {
   const search = new URLSearchParams(location);
   let name = search.get('page') as RouteNames;
-  if (name === 'index') {
-    name = '' as RouteNames;
+  if (name === '/index') {
+    name = '/' as RouteNames;
   }
 
   const params = {} as RouteParams[RouteNames];
   search.forEach((value, key) => {
     if (key === 'page') return;
-    // ネストされたオブジェクトは JSON としてパース
+
+    // 1. 配列形式のパラメータ (e.g. ?tags=a&tags=b)
+    const allValues = search.getAll(key);
+    if (allValues.length > 1) {
+      (params as any)[key] = allValues;
+      return;
+    }
+
+    // 2. JSON オブジェクト形式のパラメータ
+    // (getAll 済みなので value は単一)
     if (value.startsWith('{') && value.endsWith('}')) {
       try {
         (params as any)[key] = JSON.parse(value);
         return;
-      } catch (e) {
-        // JSON パース失敗時は通常の文字列として扱う
+      } catch {
+        // JSON パース失敗時は、通常の文字列としてフォールバック
       }
     }
-    // 配列形式のパラメータ（同じキーが複数ある場合）
-    if (search.getAll(key).length > 1) {
-      (params as any)[key] = search.getAll(key);
-    } else {
-      (params as any)[key] = value;
-    }
+
+    // 3. 通常の文字列パラメータ
+    (params as any)[key] = value;
   });
 
   return { name, params };
@@ -63,7 +85,7 @@ function parseLocation<
 export function serializeParams(params: Record<string, any>): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value === undefined) continue;
+    if (value === undefined || value === null) continue;
     if (Array.isArray(value)) {
       for (const v of value) {
         search.append(key, String(v));
@@ -77,20 +99,21 @@ export function serializeParams(params: Record<string, any>): string {
   return search.toString();
 }
 
-export function createRouter<
+export async function createRouter<
   RouteNames extends string,
-  RouteParams extends Record<RouteNames, any>,
+  RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
+  DefaultRouteName extends RouteNames = RouteNames,
 >(
-  pages: Record<RouteNames, React.FC<any>>,
+  pages: Record<RouteNames, React.ComponentType<any>>,
   options?: {
-    defaultRouteName?: RouteNames;
+    defaultRouteName?: DefaultRouteName;
   },
-): Router<RouteNames, RouteParams> {
+): Promise<Router<RouteNames, RouteParams>> {
   const adapter = getAdapter();
   const listeners: Set<Listener<RouteNames, RouteParams>> = new Set();
 
   const initialRoute = parseLocation<RouteNames, RouteParams>(
-    adapter.getLocation(),
+    await adapter.getLocation(),
   );
   if (!initialRoute.name && options?.defaultRouteName !== undefined) {
     initialRoute.name = options.defaultRouteName;
@@ -111,7 +134,16 @@ export function createRouter<
 
   return {
     pages,
-    navigate: (name, params, options) => {
+    navigate: <N extends RouteNames>(
+      name: N,
+      ...args: [keyof RouteParams[N]] extends [never]
+        ? [
+            params?: RouteParams[N] | undefined | null,
+            options?: { replace?: boolean },
+          ]
+        : [params: RouteParams[N], options?: { replace?: boolean }]
+    ) => {
+      const [params, options] = args;
       const query = params ? serializeParams(params as any) : '';
       const url = query ? `?page=${name}&${query}` : `?page=${name}`;
       if (options?.replace) {
@@ -119,7 +151,7 @@ export function createRouter<
       } else {
         adapter.push(url);
       }
-      currentRoute = { name, params };
+      currentRoute = { name, params: (params || {}) as RouteParams[N] };
       notify();
     },
     subscribe: (listener) => {
