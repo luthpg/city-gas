@@ -16,7 +16,7 @@ import { useNavigate } from "@ciderjs/city-gas/vue";
 
 const navigate = useNavigate();
 
-const goHome = () => navigate("", {});
-const goUser = () => navigate("users/show", { userId: "123" });
-const goAbout = () => navigate("about", {});
+const goHome = () => navigate("/");
+const goUser = () => navigate("/users/show", { userId: "123" });
+const goAbout = () => navigate("/about");
 </script>

@@ -1,4 +1,5 @@
 import type { Adapter } from '@/env';
+import type { WebAppLocationType } from '~/types/appsscript';
 
 export const gasAdapter: Adapter = {
   push: (url: string) => {
@@ -15,14 +16,25 @@ export const gasAdapter: Adapter = {
     const hash = urlObj.hash;
     google.script.history.replace({}, params, hash);
   },
-  getLocation: () => {
-    let loc: any;
-    google.script.url.getLocation((l) => {
-      loc = l;
-    });
+  getLocation: async () => {
+    const getLocation = () =>
+      new Promise<WebAppLocationType>((resolve) => {
+        google.script.url.getLocation((l) => {
+          resolve(l);
+        });
+      });
+    const loc = await getLocation();
     return loc?.hash ?? '';
   },
-  onChange: () => {
-    // GAS has no popstate event
+  onChange: (callback) => {
+    google.script.history.setChangeHandler((e) => {
+      const search = new URLSearchParams();
+      if (e.location.parameter) {
+        for (const [key, value] of Object.entries(e.location.parameter)) {
+          search.set(key, value);
+        }
+      }
+      callback(`?${search.toString()}`);
+    });
   },
 };

@@ -11,16 +11,16 @@ import './generated/router.d';
 import { pages } from './generated/routes';
 
 // 1. 生成された pages マップをルーターに渡す
-const router = createRouter(pages, { defaultRouteName: '' });
+const router = await createRouter(pages);
 
 // 2. ナビゲーションUI
 const Navigation = () => {
   const navigate = useNavigate();
   return (
     <nav>
-      <button onClick={() => navigate('', {})}>Go to Home</button>
-      <button onClick={() => navigate('users/show', { userId: '123' })}>Go to Profile 123</button>
-      <button onClick={() => navigate('about', {})}>Go to About</button>
+      <button onClick={() => navigate('/')}>Go to Home</button>
+      <button onClick={() => navigate('/users/show', { userId: '123' })}>Go to Profile 123</button>
+      <button onClick={() => navigate('/about')}>Go to About</button>
     </nav>
   );
 };

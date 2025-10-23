@@ -23,12 +23,12 @@ interface AppRouteParams {
 describe('Core Router', () => {
   let router: Router<AppRouteNames, AppRouteParams>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mocks before each test
     vi.clearAllMocks();
     mockAdapter.getLocation.mockReturnValue('?page=');
 
-    router = createRouter<AppRouteNames, AppRouteParams>(
+    router = await createRouter<AppRouteNames, AppRouteParams>(
       {
         '': () => null,
         about: () => null,

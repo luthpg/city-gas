@@ -58,7 +58,7 @@ function extractParams(filePath: string): Record<string, any> | undefined {
     if (script) {
       return extractParamsFromTs(filePath, script);
     }
-    return {};
+    return undefined;
   } else {
     return extractParamsFromTs(filePath, content);
   }
@@ -73,9 +73,9 @@ function pathToRouteName(pagesDir: string, filePath: string): string {
     return withoutExt.slice(0, -6);
   }
   if (withoutExt === 'index') {
-    return '';
+    return '/';
   }
-  return withoutExt;
+  return `/${withoutExt}`;
 }
 
 function generateTypeContent(
