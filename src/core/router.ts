@@ -99,7 +99,7 @@ export function serializeParams(params: Record<string, any>): string {
   return search.toString();
 }
 
-export async function createRouter<
+export function createRouter<
   RouteNames extends string,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
   DefaultRouteName extends RouteNames = RouteNames,
@@ -108,12 +108,12 @@ export async function createRouter<
   options?: {
     defaultRouteName?: DefaultRouteName;
   },
-): Promise<Router<RouteNames, RouteParams>> {
+): Router<RouteNames, RouteParams> {
   const adapter = getAdapter();
   const listeners: Set<Listener<RouteNames, RouteParams>> = new Set();
 
   const initialRoute = parseLocation<RouteNames, RouteParams>(
-    await adapter.getLocation(),
+    adapter.getLocation(),
   );
   if (!initialRoute.name && options?.defaultRouteName !== undefined) {
     initialRoute.name = options.defaultRouteName;

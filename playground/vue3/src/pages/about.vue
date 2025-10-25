@@ -6,5 +6,8 @@
 </template>
 
 <script setup lang="ts">
+</script>
+
+<script lang="ts">
 export const params = {};
 </script>

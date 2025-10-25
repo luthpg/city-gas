@@ -6,6 +6,8 @@
 </template>
 
 <script setup lang="ts">
-// Home page has no params
+</script>
+
+<script lang="ts">
 export const params = {};
 </script>
