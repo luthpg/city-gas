@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import { RouterContext } from '@/adapters/react/provider';
 import type {
   RegisteredRouteNames,

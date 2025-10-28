@@ -1,5 +1,5 @@
 // biome-ignore lint/style/useImportType: import for using jsx
-import React from 'react';
+import * as React from 'react';
 import { useRoute, useRouter } from '@/adapters/react/hooks';
 import type {
   RegisteredRouteNames,
