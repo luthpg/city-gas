@@ -8,8 +8,11 @@
 特徴は以下の通り:
 
 - **ファイルベースルーティング**: `src/pages/` 以下のファイル構造をルートに変換
+- **ネストされたルート (レイアウト機能)**: `_layout.tsx` による共通レイアウト、`_root.tsx` によるルート提示、`_404.tsx` による見つからないページのフォールバック
 - **柔軟 params DSL / Zod対応**: ページごとに `export const params = { ... }` を宣言し、必須/任意、enum、配列、ネストオブジェクトを表現可能
+- **型安全なパスパラメータ**: 動的ルートのパスパラメータも型付けされ、フックで取得可能
 - **型安全な navigate**: `router.navigate("pageName", params)` が IDE 補完され、型エラーを防止
+- **ナビゲーションガード**: 認証状態のチェックや、フォームの未保存データを警告するなど、ルート遷移を制御する仕組み
 - **フレームワーク対応**: React Hooks と Vue Composables の両方を提供
 - **環境抽象化**: GAS 環境では `google.script.url` / `google.script.history` を利用、ブラウザでは `window.location` / `window.history` を利用
 - **Vite プラグイン**: ページ構造と params 定義から `RouteNames` と `RouteParams` を自動生成
@@ -35,6 +38,7 @@ src/pages/
   index.tsx       // ルートは ''
   about.vue
   users/
+    [userId].tsx  // ルートは 'users/[userId]'、userId は型付けされたパスパラメータ
     show.tsx      // ルートは 'users/show'
 ```
 
@@ -53,6 +57,14 @@ export interface RouteParams {
   "users/show": { userId: string };
 }
 ```
+
+---
+
+## Nested Routes
+
+- `_layout.tsx` / `_layout.vue`: 子ルートに共通のレイアウトを提供。ネストされたルートの親として機能。
+- `_root.tsx` / `_root.vue`: アプリケーションの最上位レイアウト。全てのルートに適用される。
+- `_404.tsx` / `_404.vue`: マッチするルートが見つからなかった場合に表示されるフォールバックページ。
 
 ---
 
@@ -87,6 +99,7 @@ export default function UserShowPage({ userId }: { userId: string }) {
 ### Core
 
 - `createRouter<R, P>(pages, options)`: ルーターインスタンスを生成
+- `router.beforeEach((to, from, next) => { ... })`: ナビゲーションガードを登録
 
 ### React
 
@@ -119,6 +132,27 @@ navigate("users/show", { userId: "123" });
 
 const params = useParams();
 const route = useRoute();
+```
+
+---
+
+## Navigation Guards
+
+ナビゲーションガードは、ルート遷移の前後で処理を挟み込むための機能です。認証状態のチェック、ユーザー権限の確認、フォームの未保存データの警告などに利用できます。
+
+```ts
+router.beforeEach((to, from, next) => {
+  // to: 遷移先のルート情報
+  // from: 遷移元のルート情報
+  // next: ナビゲーションを解決するための関数
+
+  // 例: 認証されていない場合はログインページへリダイレクト
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    next('/login');
+  } else {
+    next(); // ナビゲーションを続行
+  }
+});
 ```
 
 ---

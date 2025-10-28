@@ -115,8 +115,8 @@ export function createRouter<
   const initialRoute = parseLocation<RouteNames, RouteParams>(
     adapter.getLocation(),
   );
-  if (!initialRoute.name && options?.defaultRouteName !== undefined) {
-    initialRoute.name = options.defaultRouteName;
+  if (!initialRoute.name) {
+    initialRoute.name = options?.defaultRouteName ?? ('/' as RouteNames);
   }
 
   let currentRoute = initialRoute;

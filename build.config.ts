@@ -29,5 +29,13 @@ export default defineBuildConfig({
       jsxFragment: 'React.Fragment',
     },
   },
-  externals: ['vite', 'fast-glob', 'typescript', 'react', 'react-dom', 'vue', '@vue/compiler-sfc'],
+  externals: [
+    'vite',
+    'fast-glob',
+    'typescript',
+    'react',
+    'react-dom',
+    'vue',
+    '@vue/compiler-sfc',
+  ],
 });
