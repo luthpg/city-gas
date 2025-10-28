@@ -18,19 +18,20 @@
 - [x] `RouterProvider`: Context を通じてルーターインスタンスを注入
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Hooks: 型安全なナビゲーションとパラメータアクセスを提供
+- [ ] ネストされたルート (`_layout.tsx`, `_root.tsx`, `_404.tsx`) のサポート
 
 ### Vue Adapter
 
 - [x] `createRouterPlugin`: `app.use()` でルーターインスタンスを注入
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Composables: Composition API での型安全な操作を提供
-- [x] ネストされたルート (`_layout.tsx`, `_root.tsx`, `_404.tsx`) のサポート
+- [ ] ネストされたルート (`_layout.vue`, `_root.vue`, `_404.vue`) のサポート
 
 ---
 
 ## Environment Adapter
 
-- [x] **GAS Adapter**: `google.script.url` と `google.script.history` をラップ
+- [ ] **GAS Adapter**: `google.script.url` と `google.script.history` をラップ
 - [x] **Browser Adapter**: `window.location` と `window.history` をラップ
 - [x] **Adapter 切替**: 実行環境を判定し、適切な Adapter を選択
 
