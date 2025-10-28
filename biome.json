@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.6/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.0/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -32,11 +32,21 @@
       }
     },
     {
-      "includes": ["types/**/*", ".bin/typedef/**/*", "tests/**/*"],
+      "includes": ["src/**/*", "types/**/*", ".bin/typedef/**/*", "tests/**/*"],
       "linter": {
         "rules": {
           "suspicious": {
             "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/router*.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
           }
         }
       }

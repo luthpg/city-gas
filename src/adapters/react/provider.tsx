@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import type { Router } from '@/core/router';
 
 export const RouterContext = React.createContext<{

@@ -10,7 +10,7 @@
     "strict": true /* Enable all strict type-checking options. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
     "composite": true /* Enable project references. */,
-    "jsx": "react" /* Specify what JSX code is generated. */,
+    "jsx": "react-jsx" /* Specify what JSX code is generated. */,
     "paths": {
       "@/*": ["./src/*"],
       "~/*": ["./*"]

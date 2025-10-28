@@ -16,14 +16,11 @@ export const gasAdapter: Adapter = {
     const hash = urlObj.hash;
     google.script.history.replace({}, params, hash);
   },
-  getLocation: async () => {
-    const getLocation = () =>
-      new Promise<WebAppLocationType>((resolve) => {
-        google.script.url.getLocation((l) => {
-          resolve(l);
-        });
-      });
-    const loc = await getLocation();
+  getLocation: () => {
+    let loc: WebAppLocationType = { hash: '', parameter: {}, parameters: {} };
+    google.script.url.getLocation((l) => {
+      loc = l;
+    });
     return loc?.hash ?? '';
   },
   onChange: (callback) => {

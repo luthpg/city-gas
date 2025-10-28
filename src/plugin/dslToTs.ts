@@ -38,7 +38,12 @@ export function dslToTs(dsl: DSL): string {
         break;
       }
       case 'object': {
-        const shape = Object.entries(dsl.shape)
+        const entries = Object.entries(dsl.shape);
+        if (entries.length === 0) {
+          typeStr = '{}';
+          break;
+        }
+        let shape = entries
           .map(([key, value]) => {
             let isOptional = false;
             if (typeof value === 'string') {
@@ -55,7 +60,8 @@ export function dslToTs(dsl: DSL): string {
             return `${finalKey}: ${typeWithoutOptional}`;
           })
           .join('; ');
-        typeStr = `{ ${shape}; }`;
+        if (shape !== '') shape = ` ${shape}; `;
+        typeStr = `{${shape}}`;
         break;
       }
     }

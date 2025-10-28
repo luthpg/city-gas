@@ -23,6 +23,11 @@ export default defineBuildConfig({
         '~': path.resolve(__dirname, '.'),
       },
     },
+    esbuild: {
+      jsx: 'automatic',
+      jsxFactory: 'React.createElement',
+      jsxFragment: 'React.Fragment',
+    },
   },
-  externals: ['vite', 'fast-glob', 'typescript'],
+  externals: ['vite', 'fast-glob', 'typescript', 'react', 'react-dom', 'vue', '@vue/compiler-sfc'],
 });

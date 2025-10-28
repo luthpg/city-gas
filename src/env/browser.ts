@@ -7,7 +7,7 @@ export const browserAdapter: Adapter = {
   replace: (url: string) => {
     window.history.replaceState({}, '', url);
   },
-  getLocation: async () => window.location.search,
+  getLocation: () => window.location.search,
   onChange: (callback: LocationChangeCallback) => {
     window.addEventListener('popstate', () => {
       callback(window.location.search);

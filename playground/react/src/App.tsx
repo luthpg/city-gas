@@ -11,7 +11,7 @@ import './generated/router.d';
 import { pages } from './generated/routes';
 
 // 1. 生成された pages マップをルーターに渡す
-const router = await createRouter(pages);
+const router = createRouter(pages);
 
 // 2. ナビゲーションUI
 const Navigation = () => {

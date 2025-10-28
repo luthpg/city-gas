@@ -1,8 +1,8 @@
 import path from 'node:path';
-import type { Plugin, ResolvedConfig } from 'vite';
+import type { PluginOption, ResolvedConfig } from 'vite';
 import { generate } from '@/plugin/generator';
 
-export function cityGasRouter(): Plugin {
+export function cityGasRouter(): PluginOption {
   let config: ResolvedConfig;
 
   return {

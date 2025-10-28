@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { useNavigate } from "@ciderjs/city-gas/vue";
+import { useNavigate, RouterOutlet } from "@ciderjs/city-gas/vue";
 
 const navigate = useNavigate();
 

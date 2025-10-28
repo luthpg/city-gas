@@ -6,8 +6,8 @@
 export type RouteNames = "/about" | "/" | "/users/show";
 
 export interface RouteParams {
-  "/about": {  };
-  "/": {  };
+  "/about": {};
+  "/": {};
   "/users/show": { userId: string; };
 }
 

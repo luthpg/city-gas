@@ -54,7 +54,7 @@ function extractParams(filePath: string): Record<string, any> | undefined {
   if (filePath.endsWith('.vue')) {
     const { descriptor } = parse(content);
     const script =
-      descriptor.scriptSetup?.content || descriptor.script?.content;
+      descriptor.script?.content ?? descriptor.scriptSetup?.content;
     if (script) {
       return extractParamsFromTs(filePath, script);
     }
@@ -118,11 +118,12 @@ function generateRoutesContent(
 ) {
   const imports = routes
     .map((r, i) => {
+      const extension = path.extname(r.path);
       const importPath = path
         .relative(path.resolve(rootDir, 'src/generated'), r.path)
         .replace(/\\/g, '/')
         .replace(/\.[^/.]+$/, '');
-      return `import P${i} from '${importPath}';`;
+      return `import P${i} from '${importPath}${extension === '.vue' ? '.vue' : ''}';`;
     })
     .join('\n');
 
