@@ -19,15 +19,17 @@
 - [✅] Issue: React Adapter - useNavigate, useParams, useRoute Hooks 実装
 - [✅] Issue: Vue Adapter - createRouterPlugin, RouterOutlet 実装
 - [✅] Issue: Vue Adapter - useNavigate, useParams, useRoute Composables 実装
+- [ ] Issue: ネストされたルート - `_layout.tsx`, `_root.tsx`, `_404.tsx` のサポート
 - [✅] Issue: Vite Plugin - HMR 対応（ファイル変更で型再生成）
-- [✅] Issue: エラーハンドリング - 未定義ルート → defaultRoute フォールバック
+- [ ] Issue: エラーハンドリング - 未定義ルート → defaultRoute フォールバック
 
-## Milestone: v0.3.0 — 動的ルート対応
+## Milestone: v0.3.0 — 動的ルート & ナビゲーションガード対応
 
 --------------------------------------------------
 
-- [ ] Issue: 動的ルート - `[id].tsx` の検出とパラメータ抽出
+- [ ] Issue: 動的ルート - `[id].tsx` の検出と型安全なパスパラメータ抽出
 - [ ] Issue: 動的ルート - 型生成への統合
+- [ ] Issue: ナビゲーションガード - `router.beforeEach` API の実装
 
 ## Milestone: v0.4.0 — Zod 対応
 

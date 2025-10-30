@@ -8,8 +8,11 @@
 特徴は以下の通り:
 
 - **ファイルベースルーティング**: `src/pages/` 以下の構造をルートに変換
+- **ネストされたルート (レイアウト機能)**: `_layout.tsx` による共通レイアウト、`_root.tsx` によるルート提示、`_404.tsx` による見つからないページのフォールバック
 - **柔軟 params DSL**: ページごとに `params` を宣言し、必須/任意、enum、配列、ネストオブジェクトを表現可能
+- **型安全なパスパラメータ**: 動的ルートのパスパラメータも型付けされ、フックで取得可能
 - **型安全な navigate**: `router.navigate("pageName", params)` が IDE 補完される
+- **ナビゲーションガード**: 認証状態のチェックや、フォームの未保存データを警告するなど、ルート遷移を制御する仕組み
 - **フレームワーク対応**: React Hooks と Vue Composables の両方を提供
 - **環境抽象化**: GAS とブラウザの両方に対応
 - **Vite プラグイン**: ルートと params から `.d.ts` を自動生成
@@ -24,15 +27,16 @@
 - **Router Core**
   - ルート管理 (`RouteNames`, `RouteParams`)
   - `navigate`, `subscribe`, `getCurrentRoute` を提供
+  - ネストされたルートの解決とレンダリング (`_layout.tsx`, `_root.tsx`, `_404.tsx` の処理)
 - **Framework Adapters**
-  - **React Adapter**: `useNavigate`, `useParams`, `useRoute`, `RouterProvider`, `RouterOutlet`
-  - **Vue Adapter**: `useNavigate`, `useParams`, `useRoute`, `createRouterPlugin`, `RouterOutlet`
+  - **React Adapter**: `useNavigate`, `useParams` (型安全なパスパラメータ取得), `useRoute`, `RouterProvider`, `RouterOutlet`
+  - **Vue Adapter**: `useNavigate`, `useParams` (型安全なパスパラメータ取得), `useRoute`, `createRouterPlugin`, `RouterOutlet`
 - **Environment Adapter**
   - GAS Adapter: `google.script.url`, `google.script.history`
   - Browser Adapter: `window.location`, `window.history`
 - **Vite Plugin**
   - `src/pages/**/*.{tsx,vue}` を探索
-  - `params` DSL を解析し、型定義 (`.generated/router.d.ts`) を生成
+  - `params` DSL と動的パスパラメータを解析し、型定義 (`.generated/router.d.ts`) を生成
   - ルートとコンポーネントのマッピング情報 (`.generated/routes.ts`) を生成
 - **Generated Files**
   - `router.d.ts`: `RouteNames`, `RouteParams` の型定義
@@ -76,6 +80,7 @@
 - `router.navigate(name, params, options)`
 - `router.subscribe(listener)`
 - `router.getCurrentRoute()`
+- `router.beforeEach((to, from, next) => { ... })`: ナビゲーションガード
 
 ### React API
 
