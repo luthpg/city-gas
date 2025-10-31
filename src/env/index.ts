@@ -6,7 +6,7 @@ export type LocationChangeCallback = (location: string) => void;
 export interface Adapter {
   push: (url: string) => void;
   replace: (url: string) => void;
-  getLocation: () => string;
+  getLocation: (callback: (location: string) => void) => void;
   onChange: (callback: LocationChangeCallback) => void;
 }
 

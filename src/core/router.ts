@@ -112,16 +112,25 @@ export function createRouter<
   const adapter = getAdapter();
   const listeners: Set<Listener<RouteNames, RouteParams>> = new Set();
 
-  const initialRoute = parseLocation<RouteNames, RouteParams>(
-    adapter.getLocation(),
-  );
-  if (!initialRoute.name) {
-    initialRoute.name = options?.defaultRouteName ?? ('/' as RouteNames);
-  }
+  let currentRoute: Route<RouteNames, RouteParams> = {
+    name: options?.defaultRouteName ?? ('/' as RouteNames),
+    params: {} as any,
+  };
+  let isInitialized = false;
 
-  let currentRoute = initialRoute;
+  adapter.getLocation((location) => {
+    const initialRoute = parseLocation<RouteNames, RouteParams>(location);
+    if (!initialRoute.name && options?.defaultRouteName !== undefined) {
+      initialRoute.name = options.defaultRouteName;
+    }
+
+    currentRoute = initialRoute;
+    isInitialized = true;
+    notify(); // notify to listeners after initialization
+  });
 
   adapter.onChange((location) => {
+    if (!isInitialized) return; // ignore changes before initialization
     currentRoute = parseLocation(location);
     notify();
   });
@@ -156,6 +165,10 @@ export function createRouter<
     },
     subscribe: (listener) => {
       listeners.add(listener);
+      // take current value to listener immediately if initialized
+      if (isInitialized) {
+        listener(currentRoute);
+      }
       return () => {
         listeners.delete(listener);
       };
