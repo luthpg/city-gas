@@ -1,28 +1,34 @@
 import type { Adapter } from '@/env';
-import type { WebAppLocationType } from '~/types/appsscript';
 
 export const gasAdapter: Adapter = {
   push: (url: string) => {
-    const urlObj = new URL(url);
+    const urlObj = new URL(
+      url.startsWith('http') ? `http://example.com/${url}` : url,
+    );
     const paramsArray = urlObj.searchParams.entries();
     const params = Object.fromEntries(paramsArray);
     const hash = urlObj.hash;
     google.script.history.push({}, params, hash);
   },
   replace: (url: string) => {
-    const urlObj = new URL(url);
+    const urlObj = new URL(
+      url.startsWith('http') ? `http://example.com/${url}` : url,
+    );
     const paramsArray = urlObj.searchParams.entries();
     const params = Object.fromEntries(paramsArray);
     const hash = urlObj.hash;
     google.script.history.replace({}, params, hash);
   },
-  getLocation: () => {
-    let loc: WebAppLocationType = { hash: '', parameter: {}, parameters: {} };
+  getLocation: (callback) =>
     google.script.url.getLocation((l) => {
-      loc = l;
-    });
-    return loc?.hash ?? '';
-  },
+      const search = new URLSearchParams();
+      if (l.parameter) {
+        for (const [key, value] of Object.entries(l.parameter)) {
+          search.set(key, value);
+        }
+      }
+      callback(`?${search.toString()}`);
+    }),
   onChange: (callback) => {
     google.script.history.setChangeHandler((e) => {
       const search = new URLSearchParams();
