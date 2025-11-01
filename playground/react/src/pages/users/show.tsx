@@ -4,7 +4,12 @@ export const params = {
   userId: 'string',
 };
 
-export default function UserShowPage() { 
+export default function UserShowPage() {
   const { userId } = useParams<'/users/show'>();
-  return <div>User Show Page of {userId}</div>;
+  return (
+    <div>
+      <h2>User Show Page</h2>
+      <p>User ID: {userId}</p>
+    </div>
+  );
 }

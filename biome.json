@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.2/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -7,7 +7,14 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["src/**/*", "tests/**/*", "types/**/*", "./*.ts", "./*.json"]
+    "includes": [
+      "src/**/*",
+      "tests/**/*",
+      "playground/**/*",
+      "types/**/*",
+      "./*.ts",
+      "./*.json"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -49,6 +56,21 @@
             "noBannedTypes": "off"
           }
         }
+      }
+    },
+    {
+      "includes": ["playground/**/*"],
+      "linter": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": ["**/dist/**/*"],
+      "linter": {
+        "enabled": false
+      },
+      "formatter": {
+        "enabled": false
       }
     }
   ]

@@ -1,1 +1,3 @@
-export default function IndexPage() { return <div>Index Page</div>; }
+export default function IndexPage() {
+  return <div>Index Page</div>;
+}

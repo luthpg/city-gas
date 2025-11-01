@@ -6,8 +6,6 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps } from "vue";
-
 // 型安全な props
 const props = defineProps<{ userId: string }>();
 const { userId } = props;

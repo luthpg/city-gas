@@ -1,4 +1,5 @@
-import { dslToTs } from '@/plugin/dslToTs';
+import { describe, expect, it } from 'vitest';
+import { type DSL, dslToTs } from '@/plugin/dslToTs';
 
 describe('dslToTs', () => {
   it('should convert primitive types', () => {
@@ -11,22 +12,22 @@ describe('dslToTs', () => {
   });
 
   it('should convert enum types', () => {
-    const dsl = { type: 'enum', values: ['a', 'b', 'c'] };
+    const dsl = { type: 'enum', values: ['a', 'b', 'c'] } as DSL;
     expect(dslToTs(dsl)).toBe('"a" | "b" | "c"');
   });
 
   it('should convert optional enum types', () => {
-    const dsl = { type: 'enum', values: ['a', 'b'], optional: true };
+    const dsl = { type: 'enum', values: ['a', 'b'], optional: true } as DSL;
     expect(dslToTs(dsl)).toBe('"a" | "b" | undefined');
   });
 
   it('should convert array types', () => {
-    const dsl = { type: 'array', items: 'string' };
+    const dsl = { type: 'array', items: 'string' } as DSL;
     expect(dslToTs(dsl)).toBe('string[]');
   });
 
   it('should convert optional array types', () => {
-    const dsl = { type: 'array', items: 'number', optional: true };
+    const dsl = { type: 'array', items: 'number', optional: true } as DSL;
     expect(dslToTs(dsl)).toBe('number[] | undefined');
   });
 
@@ -34,7 +35,7 @@ describe('dslToTs', () => {
     const dsl = {
       type: 'array',
       items: { type: 'object', shape: { id: 'string' } },
-    };
+    } as DSL;
     expect(dslToTs(dsl)).toBe('{ id: string; }[]');
   });
 
@@ -45,7 +46,7 @@ describe('dslToTs', () => {
         name: 'string',
         age: 'number?',
       },
-    };
+    } as DSL;
     expect(dslToTs(dsl)).toBe('{ name: string; age?: number; }');
   });
 
@@ -54,7 +55,7 @@ describe('dslToTs', () => {
       type: 'object',
       shape: { name: 'string' },
       optional: true,
-    };
+    } as DSL;
     expect(dslToTs(dsl)).toBe('{ name: string; } | undefined');
   });
 
@@ -74,7 +75,7 @@ describe('dslToTs', () => {
           },
         },
       },
-    };
+    } as DSL;
     expect(dslToTs(dsl)).toBe(
       '{ user: { id: string; profile?: { email?: string; }; }; }',
     );
@@ -96,7 +97,7 @@ describe('dslToTs', () => {
           },
         },
       },
-    };
+    } as DSL;
     expect(dslToTs(dsl)).toBe(
       '{ items: { id: number; tags?: string[]; status: "active" | "inactive"; }[]; }',
     );

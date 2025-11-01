@@ -1,4 +1,4 @@
-# city-gas 実装タスク分解（詳細版）
+# city-gas 実装タスク分解
 
 ---
 
@@ -18,20 +18,20 @@
 - [x] `RouterProvider`: Context を通じてルーターインスタンスを注入
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Hooks: 型安全なナビゲーションとパラメータアクセスを提供
-- [ ] ネストされたルート (`_layout.tsx`, `_root.tsx`, `_404.tsx`) のサポート
+- [x] ネストされたルート (`_layout.tsx`, `_root.tsx`, `_404.tsx`) のサポート
 
 ### Vue Adapter
 
 - [x] `createRouterPlugin`: `app.use()` でルーターインスタンスを注入
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Composables: Composition API での型安全な操作を提供
-- [ ] ネストされたルート (`_layout.vue`, `_root.vue`, `_404.vue`) のサポート
+- [x] ネストされたルート (`_layout.vue`, `_root.vue`, `_404.vue`) のサポート
 
 ---
 
 ## Environment Adapter
 
-- [ ] **GAS Adapter**: `google.script.url` と `google.script.history` をラップ
+- [x] **GAS Adapter**: `google.script.url` と `google.script.history` をラップ
 - [x] **Browser Adapter**: `window.location` と `window.history` をラップ
 - [x] **Adapter 切替**: 実行環境を判定し、適切な Adapter を選択
 
@@ -52,7 +52,7 @@
 
 - [x] **単体テスト**: DSL → TS 型変換、クエリシリアライズ、Hooks/Composables
 - [ ] **統合テスト**: React/Vue 環境でのルーター全体の動作確認
-- [ ] **単体テスト**: ネストされたルートの解決ロジック
+- [x] **単体テスト**: ネストされたルートの解決ロジック
 - [ ] **単体テスト**: ナビゲーションガード
 - [ ] **E2E テスト**: GAS/ブラウザ環境での実動作確認
 

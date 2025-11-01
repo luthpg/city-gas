@@ -2,18 +2,14 @@ import type { Adapter } from '@/env';
 
 export const gasAdapter: Adapter = {
   push: (url: string) => {
-    const urlObj = new URL(
-      url.startsWith('http') ? `http://example.com/${url}` : url,
-    );
+    const urlObj = new URL(url, 'http://example.com');
     const paramsArray = urlObj.searchParams.entries();
     const params = Object.fromEntries(paramsArray);
     const hash = urlObj.hash;
     google.script.history.push({}, params, hash);
   },
   replace: (url: string) => {
-    const urlObj = new URL(
-      url.startsWith('http') ? `http://example.com/${url}` : url,
-    );
+    const urlObj = new URL(url, 'http://example.com');
     const paramsArray = urlObj.searchParams.entries();
     const params = Object.fromEntries(paramsArray);
     const hash = urlObj.hash;
