@@ -1,23 +1,15 @@
-import react from '@vitejs/plugin-react';
+import type { PluginOption } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [tsconfigPaths() as PluginOption],
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./tests/setup.ts'],
     coverage: {
-      exclude: [
-        'playground/**/*',
-        'dist/**/*',
-        'node_modules/**/*',
-        'types/**/*',
-        './*.ts',
-        '.bin/**/*',
-        'scripts/**/*',
-      ],
+      include: ['src/**/*'],
     },
   },
 });

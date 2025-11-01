@@ -118,12 +118,13 @@ function generateRoutesContent(
 ) {
   const imports = routes
     .map((r, i) => {
-      const extension = path.extname(r.path);
       const importPath = path
-        .relative(path.resolve(rootDir, 'src/generated'), r.path)
-        .replace(/\\/g, '/')
-        .replace(/\.[^/.]+$/, '');
-      return `import P${i} from '${importPath}${extension === '.vue' ? '.vue' : ''}';`;
+        .relative(
+          path.dirname(path.resolve(rootDir, 'src/generated/routes.ts')),
+          r.path,
+        )
+        .replace(/\\/g, '/');
+      return `import P${i} from '${importPath}';`;
     })
     .join('\n');
 

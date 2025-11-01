@@ -43,7 +43,7 @@ export interface Router<
   pages: Record<RouteNames, React.ComponentType<any>>;
 }
 
-function parseLocation<
+export function parseLocation<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 >(location: string): Route<RouteNames, RouteParams> {
