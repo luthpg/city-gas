@@ -1,5 +1,5 @@
 import { act, render, screen } from '@testing-library/react';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import {
   useNavigate,

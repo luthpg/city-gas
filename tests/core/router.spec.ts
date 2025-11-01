@@ -97,4 +97,17 @@ describe('Core Router', () => {
     expect(mockAdapter.replace).toHaveBeenCalledWith('?page=/about');
     expect(mockAdapter.push).not.toHaveBeenCalled();
   });
+
+  it('should fall back to _404 if a non-existent page is requested', () => {
+    const listener = vi.fn();
+    router.subscribe(listener);
+
+    // Simulate URL change to a page that doesn't exist
+    const onChangeCallback = mockAdapter.onChange.mock.calls[0][0];
+    onChangeCallback('?page=/not-found');
+
+    expect(listener).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: '_404' }),
+    );
+  });
 });

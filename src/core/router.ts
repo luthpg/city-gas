@@ -28,6 +28,7 @@ export interface Route<
 export interface Router<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
+  PageComponent = unknown,
 > {
   navigate: <N extends RouteNames>(
     name: N,
@@ -40,7 +41,8 @@ export interface Router<
   ) => void;
   subscribe: (listener: Listener<RouteNames, RouteParams>) => () => void;
   getCurrentRoute: () => Route<RouteNames, RouteParams>;
-  pages: Record<RouteNames, React.ComponentType<any>>;
+  pages: Record<RouteNames, PageComponent>;
+  specialPages: Record<string, PageComponent>;
 }
 
 export function parseLocation<
@@ -103,14 +105,17 @@ export function createRouter<
   RouteNames extends string,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
   DefaultRouteName extends RouteNames = RouteNames,
+  PageComponent = unknown,
 >(
-  pages: Record<RouteNames, React.ComponentType<any>>,
+  pages: Record<RouteNames, PageComponent>,
   options?: {
+    specialPages?: Record<string, PageComponent>;
     defaultRouteName?: DefaultRouteName;
   },
-): Router<RouteNames, RouteParams> {
+): Router<RouteNames, RouteParams, PageComponent> {
   const adapter = getAdapter();
   const listeners: Set<Listener<RouteNames, RouteParams>> = new Set();
+  const specialPages = options?.specialPages ?? {};
 
   let currentRoute: Route<RouteNames, RouteParams> = {
     name: options?.defaultRouteName ?? ('/' as RouteNames),
@@ -118,20 +123,29 @@ export function createRouter<
   };
   let isInitialized = false;
 
-  adapter.getLocation((location) => {
-    const initialRoute = parseLocation<RouteNames, RouteParams>(location);
-    if (!initialRoute.name && options?.defaultRouteName !== undefined) {
-      initialRoute.name = options.defaultRouteName;
+  function resolveRoute(location: string): Route<RouteNames, RouteParams> {
+    const route = parseLocation<RouteNames, RouteParams>(location);
+    if (route.name) {
+      if (!pages[route.name]) {
+        route.name = '_404' as RouteNames;
+      }
+    } else if (options?.defaultRouteName) {
+      route.name = options.defaultRouteName;
+    } else {
+      route.name = '/' as RouteNames;
     }
+    return route;
+  }
 
-    currentRoute = initialRoute;
+  adapter.getLocation((location) => {
+    currentRoute = resolveRoute(location);
     isInitialized = true;
     notify(); // notify to listeners after initialization
   });
 
   adapter.onChange((location) => {
     if (!isInitialized) return; // ignore changes before initialization
-    currentRoute = parseLocation(location);
+    currentRoute = resolveRoute(location);
     notify();
   });
 
@@ -143,6 +157,7 @@ export function createRouter<
 
   return {
     pages,
+    specialPages,
     navigate: <N extends RouteNames>(
       name: N,
       ...args: [keyof RouteParams[N]] extends [never]
