@@ -163,12 +163,24 @@ export const params = {
 **`src/pages/_root.tsx` (ルートレイアウト)**
 アプリケーション全体で共通のヘッダーやスタイル、Context Providerなどを配置します。
 
-```tsx
+```tsx: src/pages/_root.tsx
 import React from 'react';
+import { useNavigate } from '@ciderjs/city-gas/react';
+
+const Navigation = () => {
+  const navigate = useNavigate();
+  return (
+    <nav>
+      <button onClick={() => navigate('/')}>Home</button>
+      <button onClick={() => navigate('/users/show', { userId: '123' })}>User 123</button>
+    </nav>
+  );
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <div id="root-layout" style={{ border: '2px solid blue', padding: '1rem' }}>
+      <Navigation />
       <h2>ルートレイアウト (_root)</h2>
       {children}
     </div>
@@ -218,56 +230,37 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
 
 ### 4. ルーターの初期化とAppの実装 (React)
 
-アプリケーションのエントリーポイント（`main.tsx`）でルーターをセットアップし、`App.tsx` で `RouterOutlet` を使ってページを描画します。
+アプリケーションのエントリーポイント（`main.tsx`）でルーターをセットアップします。
 
 **`src/main.tsx`**
-```tsx
+
+```tsx: src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
 import { pages, specialPages } from './generated/routes';
-import App from './App';
 
 // ルーターインスタンスを作成
 const router = createRouter(pages, { specialPages });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router}>
-      <App />
-    </RouterProvider>
+    <RouterProvider router={router} />
   </React.StrictMode>,
 );
 ```
 
-**`src/App.tsx`**
-```tsx
-import React from 'react';
-import { RouterOutlet, useNavigate } from '@ciderjs/city-gas/react';
+**`src/pages/index.tsx`**
 
-const Navigation = () => {
-  const navigate = useNavigate();
-  return (
-    <nav>
-      <button onClick={() => navigate('/')}>Home</button>
-      <button onClick={() => navigate('/users/show', { userId: '123' })}>User 123</button>
-    </nav>
-  );
-};
-
-function App() {
+```tsx: src/pages/index.tsx
+export default function Page() {
   return (
     <div>
-      <h1>city-gas Playground (React)</h1>
-      <Navigation />
-      <hr />
-      <RouterOutlet />
+      <h1>Home page</h1>
     </div>
   );
 }
-
-export default App;
 ```
 
 ### 5. Vue 3での利用
@@ -276,18 +269,17 @@ Vueでの基本的なセットアップは以下の通りです。
 
 ```ts
 // main.ts
-import { createApp } from 'vue';
 import { createRouter } from '@ciderjs/city-gas';
-import { createCityGasVuePlugin } from '@ciderjs/city-gas/vue';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { createApp } from 'vue';
 import { pages, specialPages } from './generated/routes';
-import App from './App.vue';
 
-const router = createRouter(pages, { specialPages });
-const cityGasVuePlugin = createCityGasVuePlugin(router);
+function main() {
+  const router = createRouter(pages, { specialPages });
+  createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
+}
 
-const app = createApp(App);
-app.use(cityGasVuePlugin);
-app.mount('#app');
+main();
 ```
 
 ---
