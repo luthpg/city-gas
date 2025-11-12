@@ -22,6 +22,7 @@
 ## Goals
 
 - React と Vue 向けの軽量ルーターを提供
+- **エントリーポイントの簡素化**: `App.tsx`/`App.vue` といったラッパーコンポーネントを不要とし、`main` エントリーポイントでのセットアップを完結させる。
 - 柔軟 DSL による型安全な params 定義
 - GAS 環境に最適化されたクエリ駆動ルーティング (`?page=...` を使用。`page=index` やパラメータなしはルートとして解釈)
 - Vite プラグインによる DX 向上 (型自動生成)
@@ -103,8 +104,21 @@ export default function UserShowPage({ userId }: { userId: string }) {
 
 ### React
 
-```ts
-import { RouterProvider, RouterOutlet, useNavigate, useParams, useRoute } from "@ciderjs/city-gas/react";
+```ts: src/main.tsx
+// src/main.tsx
+import { RouterProvider } from "@ciderjs/city-gas/react";
+
+// RouterProvider は children がなくても自動で RouterOutlet をレンダリングする
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>,
+);
+```
+
+```tsx: src/pages/index.tsx
+// src/pages/index.tsx
+import { useNavigate, useParams, useRoute } from "@ciderjs/city-gas/react";
 
 // 型安全なナビゲーション
 const navigate = useNavigate();
@@ -119,12 +133,16 @@ const route = useRoute();
 
 ### Vue
 
-```ts
-import { createRouterPlugin, RouterOutlet, useNavigate, useParams, useRoute } from "@ciderjs/city-gas/vue";
+```ts: src/main.ts
+import { createRouterPlugin, RouterOutlet } from "@ciderjs/city-gas/vue";
 
 // main.ts
-const app = createApp(App);
-app.use(createRouterPlugin(router));
+const app = createApp(RouterOutlet);
+app.use(createRouterPlugin(router)).mount('#root');
+```
+
+```vue: src/components/Component.vue
+import { useNavigate, useParams, useRoute } from "@ciderjs/city-gas/vue";
 
 // Component.vue
 const navigate = useNavigate();

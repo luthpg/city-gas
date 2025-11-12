@@ -19,6 +19,7 @@
 - [x] Issue: React Adapter - useNavigate, useParams, useRoute Hooks 実装
 - [x] Issue: Vue Adapter - createRouterPlugin, RouterOutlet 実装
 - [x] Issue: Vue Adapter - useNavigate, useParams, useRoute Composables 実装
+- [x] Issue: DX 強化 - `App.tsx`/`App.vue` ラッパーコンポーネントの排除
 - [x] Issue: ネストされたルート - `_layout.tsx`, `_root.tsx`, `_404.tsx` のサポート
 - [x] Issue: Vite Plugin - HMR 対応（ファイル変更で型再生成）
 - [x] Issue: エラーハンドリング - 未定義ルート → defaultRoute フォールバック
