@@ -32,30 +32,38 @@
 
 ## File-based Routing
 
+`src/pages` 以下のファイル構造が、自動的にルート定義に変換されます。
+`index` ファイル（`index.tsx` や `index.vue`）は、そのディレクトリのルートとして扱われます。
+
 ### ディレクトリ構造
 
 ```txt
 src/pages/
-  index.tsx       // ルートは ''
-  about.vue
+  index.tsx       // ルートは '/'
+  about.vue       // ルートは '/about'
   users/
+    index.tsx     // ルートは '/users'
+    show.tsx      // ルートは '/users/show'
     [userId].tsx  // ルートは 'users/[userId]'、userId は型付けされたパスパラメータ
-    show.tsx      // ルートは 'users/show'
 ```
 
 ### 自動生成される型
 
-```ts
+```ts: src/.generated/router.d.ts
 // .generated/router.d.ts
 export type RouteNames =
-  | ""
-  | "about"
-  | "users/show";
+  | "/"
+  | "/about"
+  | "/users"
+  | "/users/show";
+  // | "users/[userId]";
 
 export interface RouteParams {
-  "": {};
-  about: {};
-  "users/show": { userId: string };
+  "/": {};
+  "/about": {};
+  "/users": {};
+  "/users/show": { userId: string }; // (例: show.tsx が params を持つ場合)
+  // "users/[userId]": { userId: string };
 }
 ```
 

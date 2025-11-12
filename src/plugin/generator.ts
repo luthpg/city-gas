@@ -70,7 +70,7 @@ function pathToRouteName(pagesDir: string, filePath: string): string {
   const withoutExt = posixPath.replace(/\.[^/.]+$/, '');
 
   if (withoutExt.endsWith('/index')) {
-    return withoutExt.slice(0, -6);
+    return `/${withoutExt.slice(0, -6)}`;
   }
   if (withoutExt === 'index') {
     return '/';

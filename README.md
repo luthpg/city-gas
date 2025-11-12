@@ -103,7 +103,7 @@ In each page component, you can define the types of parameters it accepts by exp
 
 Use a standard named export to define the `params` object.
 
-```tsx
+```tsx: src/pages/users/show.tsx
 // src/pages/users/show.tsx
 import React from 'react';
 
@@ -131,7 +131,7 @@ export default function UserShowPage() {
 
 In a Vue Single File Component (SFC), use a separate, normal `<script>` tag alongside `<script setup>` to export the `params` constant.
 
-```vue
+```vue: src/pages/users/show.vue
 <!-- src/pages/users/show.vue -->
 <template>
   <div>
@@ -163,12 +163,24 @@ export const params = {
 **`src/pages/_root.tsx` (Root Layout)**
 Use this to place global headers, styles, or Context Providers that should apply to the entire application.
 
-```tsx
+```tsx: src/pages/_root.tsx
 import React from 'react';
+import { useNavigate } from '@ciderjs/city-gas/react';
+
+const Navigation = () => {
+  const navigate = useNavigate();
+  return (
+    <nav>
+      <button onClick={() => navigate('/')}>Home</button>
+      <button onClick={() => navigate('/users/show', { userId: '123' })}>User 123</button>
+    </nav>
+  );
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <div id="root-layout" style={{ border: '2px solid blue', padding: '1rem' }}>
+      <Navigation />
       <h2>Root Layout (_root)</h2>
       {children}
     </div>
@@ -179,7 +191,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 **`src/pages/users/_layout.tsx` (Nested Layout)**
 This layout will only apply to a specific section (in this case, routes under `/users`).
 
-```tsx
+```tsx: src/pages/users/_layout.tsx
 import React from 'react';
 
 export default function UsersLayout({ children }: { children: React.ReactNode }) {
@@ -196,7 +208,7 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
 
 **`src/pages/_root.vue` (Root Layout)**
 
-```vue
+```vue: src/pages/_root.vue
 <template>
   <div id="root-layout" style="border: 2px solid blue; padding: 1rem;">
     <h2>Root Layout (_root)</h2>
@@ -207,7 +219,7 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
 
 **`src/pages/users/_layout.vue` (Nested Layout)**
 
-```vue
+```vue: src/pages/users/_layout.vue
 <template>
   <div id="users-layout" style="border: 2px solid green; padding: 1rem;">
     <h3>Users Section Layout (users/_layout)</h3>
@@ -221,53 +233,34 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
 Set up the router in your application's entry point (`main.tsx`) and render pages using `RouterOutlet` in `App.tsx`.
 
 **`src/main.tsx`**
-```tsx
+
+```tsx: src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
 import { pages, specialPages } from './generated/routes';
-import App from './App';
 
 // Create the router instance
 const router = createRouter(pages, { specialPages });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <RouterProvider router={router}>
-      <App />
-    </RouterProvider>
+    <RouterProvider router={router} />
   </React.StrictMode>,
 );
 ```
 
-**`src/App.tsx`**
-```tsx
-import React from 'react';
-import { RouterOutlet, useNavigate } from '@ciderjs/city-gas/react';
+**`src/pages/index.tsx`**
 
-const Navigation = () => {
-  const navigate = useNavigate();
-  return (
-    <nav>
-      <button onClick={() => navigate('/')}>Home</button>
-      <button onClick={() => navigate('/users/show', { userId: '123' })}>User 123</button>
-    </nav>
-  );
-};
-
-function App() {
+```tsx: src/pages/index.tsx
+export default function Page() {
   return (
     <div>
-      <h1>city-gas Playground (React)</h1>
-      <Navigation />
-      <hr />
-      <RouterOutlet />
+      <h1>Home page</h1>
     </div>
   );
 }
-
-export default App;
 ```
 
 ### 5. Usage with Vue 3
@@ -276,18 +269,17 @@ Basic setup for Vue is as follows:
 
 ```ts
 // main.ts
-import { createApp } from 'vue';
 import { createRouter } from '@ciderjs/city-gas';
-import { createCityGasVuePlugin } from '@ciderjs/city-gas/vue';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { createApp } from 'vue';
 import { pages, specialPages } from './generated/routes';
-import App from './App.vue';
 
-const router = createRouter(pages, { specialPages });
-const cityGasVuePlugin = createCityGasVuePlugin(router);
+function main() {
+  const router = createRouter(pages, { specialPages });
+  createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
+}
 
-const app = createApp(App);
-app.use(cityGasVuePlugin);
-app.mount('#app');
+main();
 ```
 
 ---
