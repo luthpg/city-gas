@@ -29,8 +29,8 @@
   - `navigate`, `subscribe`, `getCurrentRoute` を提供
   - ネストされたルートの解決とレンダリング (`_layout.tsx`, `_root.tsx`, `_404.tsx` の処理)
 - **Framework Adapters**
-  - **React Adapter**: `useNavigate`, `useParams` (型安全なパスパラメータ取得), `useRoute`, `RouterProvider`, `RouterOutlet`
-  - **Vue Adapter**: `useNavigate`, `useParams` (型安全なパスパラメータ取得), `useRoute`, `createRouterPlugin`, `RouterOutlet`
+  - **React Adapter**: `useNavigate`, `useParams`, `useRoute`, **`RouterProvider` (childrenオプショナル、`RouterOutlet`自動レンダリング)**, `RouterOutlet`
+  - **Vue Adapter**: `useNavigate`, `useParams`, `useRoute`, `createRouterPlugin`, **`RouterOutlet` (`createApp`のルートとして使用可能)**
 - **Environment Adapter**
   - GAS Adapter: `google.script.url`, `google.script.history`
   - Browser Adapter: `window.location`, `window.history`
@@ -87,7 +87,7 @@
 - `useNavigate(): (name, params) => void`
 - `useParams(): P[R]`
 - `useRoute(): { route: { name, params } }`
-- `<RouterProvider router={router}>`
+- **`<RouterProvider router={router}>` (childrenはオプショナル)**
 - `<RouterOutlet />`
 
 ### Vue API
@@ -96,7 +96,7 @@
 - `useNavigate(): (name, params) => void`
 - `useParams(): P[R]`
 - `useRoute(): { route: { name, params } }`
-- `<RouterOutlet />`
+- **`<RouterOutlet />` (Vueアプリのルートコンポーネントとして使用可)**
 
 ---
 

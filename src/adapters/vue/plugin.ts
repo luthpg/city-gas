@@ -1,4 +1,4 @@
-import { type App, inject } from 'vue';
+import type { App } from 'vue';
 import type {
   RegisteredRouteNames,
   RegisteredRouteParams,
@@ -23,15 +23,4 @@ export function createRouterPlugin<
       app.provide(routerKey, context);
     },
   };
-}
-
-export function useRouterContext<
-  R extends string = RegisteredRouteNames,
-  P extends Record<R, any> = RegisteredRouteParams,
->() {
-  const ctx = inject(routerKey);
-  if (!ctx) {
-    throw new Error('useRouterContext must be used within a RouterPlugin');
-  }
-  return ctx as RouterContext<R, P>;
 }

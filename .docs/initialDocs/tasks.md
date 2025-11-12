@@ -16,6 +16,7 @@
 ### React Adapter
 
 - [x] `RouterProvider`: Context を通じてルーターインスタンスを注入
+- [x] `RouterProvider`: `children`をオプショナル化し、`RouterOutlet`の自動レンダリングに対応
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Hooks: 型安全なナビゲーションとパラメータアクセスを提供
 - [x] ネストされたルート (`_layout.tsx`, `_root.tsx`, `_404.tsx`) のサポート
@@ -23,6 +24,7 @@
 ### Vue Adapter
 
 - [x] `createRouterPlugin`: `app.use()` でルーターインスタンスを注入
+- [x] `RouterOutlet`: `createApp` のルートコンポーネントとして使用可能にする (対応不要・ドキュメント化)
 - [x] `RouterOutlet`: 現在のルートに対応するコンポーネントをレンダリング
 - [x] `useNavigate`, `useParams`, `useRoute` Composables: Composition API での型安全な操作を提供
 - [x] ネストされたルート (`_layout.vue`, `_root.vue`, `_404.vue`) のサポート

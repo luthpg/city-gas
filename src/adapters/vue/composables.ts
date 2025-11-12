@@ -1,10 +1,29 @@
-import { type DeepReadonly, onUnmounted, type Ref, readonly, ref } from 'vue';
-import { useRouterContext } from '@/adapters/vue/plugin';
+import {
+  type DeepReadonly,
+  inject,
+  onUnmounted,
+  type Ref,
+  readonly,
+  ref,
+} from 'vue';
+import { routerKey } from '@/adapters/vue/key';
+import type { RouterContext } from '@/adapters/vue/plugin';
 import type {
   RegisteredRouteNames,
   RegisteredRouteParams,
   Route,
 } from '@/core/router';
+
+export function useRouterContext<
+  R extends string = RegisteredRouteNames,
+  P extends Record<R, any> = RegisteredRouteParams,
+>() {
+  const ctx = inject(routerKey);
+  if (!ctx) {
+    throw new Error('useRouterContext must be used within a RouterPlugin');
+  }
+  return ctx as RouterContext<R, P>;
+}
 
 function useStore<
   Snapshot,

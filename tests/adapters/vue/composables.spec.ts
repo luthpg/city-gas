@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
-import { useNavigate, useParams, useRoute } from '@/adapters/vue/composables';
+import { useNavigate, useParams, useRoute } from '@/adapters/vue';
 import { routerKey } from '@/adapters/vue/key';
 import type { Route, Router } from '@/core/router';
 
