@@ -64,22 +64,25 @@ function extractParams(filePath: string): Record<string, any> | undefined {
   }
 }
 
-function pathToRouteName(pagesDir: string, filePath: string): string {
+function pathToRouteInfo(
+  pagesDir: string,
+  filePath: string,
+): { name: string; isIndex: boolean } {
   const relativePath = path.relative(pagesDir, filePath);
   const posixPath = relativePath.replace(/\\/g, '/');
   const withoutExt = posixPath.replace(/\.[^/.]+$/, '');
 
   if (withoutExt.endsWith('/index')) {
-    return `/${withoutExt.slice(0, -6)}`;
+    return { name: `/${withoutExt.slice(0, -6)}`, isIndex: true };
   }
   if (withoutExt === 'index') {
-    return '/';
+    return { name: '/', isIndex: true };
   }
-  return `/${withoutExt}`;
+  return { name: `/${withoutExt}`, isIndex: false };
 }
 
 function generateTypeContent(
-  routes: { name: string; params?: Record<string, DSL> }[],
+  routes: { name: string; isIndex: boolean; params?: Record<string, DSL> }[],
 ) {
   const routeNames =
     routes.map((r) => JSON.stringify(r.name)).join(' | ') || 'never';
@@ -114,7 +117,7 @@ declare module '@ciderjs/city-gas' {
 
 function generateRoutesContent(
   rootDir: string,
-  routes: { path: string; name: string }[],
+  routes: { path: string; name: string; isIndex: boolean }[],
   specialRoutes: { path: string; name: string }[],
 ) {
   const allRoutes = [...routes, ...specialRoutes];
@@ -131,7 +134,12 @@ function generateRoutesContent(
     .join('\n');
 
   const pages = routes
-    .map((r, i) => `  ${JSON.stringify(r.name)}: P${i},`)
+    .map(
+      (r, i) =>
+        `  ${JSON.stringify(r.name)}: { component: P${i}, isIndex: ${
+          r.isIndex
+        } },`,
+    )
     .join('\n');
 
   const specialPages = specialRoutes
@@ -169,11 +177,15 @@ export async function generate(rootDir: string) {
     return specialFileNames.includes(fileName);
   });
 
-  const routes = pageFiles.map((file) => ({
-    path: file,
-    name: pathToRouteName(pagesDir, file),
-    params: extractParams(file),
-  }));
+  const routes = pageFiles.map((file) => {
+    const { name, isIndex } = pathToRouteInfo(pagesDir, file);
+    return {
+      path: file,
+      name,
+      isIndex,
+      params: extractParams(file),
+    };
+  });
 
   const specialRoutes = specialFiles.map((file) => {
     const relativePath = path.relative(pagesDir, file);

@@ -41,7 +41,7 @@ export interface Router<
   ) => void;
   subscribe: (listener: Listener<RouteNames, RouteParams>) => () => void;
   getCurrentRoute: () => Route<RouteNames, RouteParams>;
-  pages: Record<RouteNames, PageComponent>;
+  pages: Record<RouteNames, { component: PageComponent; isIndex: boolean }>;
   specialPages: Record<string, PageComponent>;
 }
 
@@ -107,7 +107,7 @@ export function createRouter<
   DefaultRouteName extends RouteNames = RouteNames,
   PageComponent = unknown,
 >(
-  pages: Record<RouteNames, PageComponent>,
+  pages: Record<RouteNames, { component: PageComponent; isIndex: boolean }>,
   options?: {
     specialPages?: Record<string, PageComponent>;
     defaultRouteName?: DefaultRouteName;

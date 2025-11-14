@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, markRaw } from 'vue';
 import { routerKey } from '@/adapters/vue/key';
 import { RouterOutlet } from '@/adapters/vue/RouterOutlet';
 import type { Route, Router } from '@/core/router';
@@ -39,15 +39,15 @@ const NotFound = defineComponent({
 // Mock Router
 const createMockRouter = (
   initialRoute: Route<string, any>,
-  pages: Record<string, any>,
+  pages: Record<string, { component: any; isIndex: boolean }>,
   specialPages: Record<string, any>,
 ) => {
   const listeners = new Set<(route: any) => void>();
   const currentRoute = initialRoute;
 
   const router = {
-    pages,
-    specialPages,
+    pages: markRaw(pages),
+    specialPages: markRaw(specialPages),
     navigate: vi.fn(),
     subscribe: (listener: (route: any) => void) => {
       listeners.add(listener);
@@ -74,7 +74,7 @@ describe('Vue RouterOutlet', () => {
   it('should render only the page component if no layouts exist', () => {
     const { router } = createMockRouter(
       { name: '/', params: { text: 'Home' } },
-      { '/': Page },
+      { '/': { component: Page, isIndex: true } },
       {},
     );
 
@@ -87,7 +87,7 @@ describe('Vue RouterOutlet', () => {
   it('should render with root and nested layouts', () => {
     const { router } = createMockRouter(
       { name: '/users/profile', params: { text: 'Profile' } },
-      { '/users/profile': Page },
+      { '/users/profile': { component: Page, isIndex: false } },
       {
         _root: RootLayout,
         'users/_layout': UsersLayout,
@@ -108,12 +108,65 @@ describe('Vue RouterOutlet', () => {
   it('should render 404 component for non-existent routes', () => {
     const { router } = createMockRouter(
       { name: '_404', params: {} },
-      { '/': Page }, // pages object doesn't have the route
+      { '/': { component: Page, isIndex: true } }, // pages object doesn't have the route
       { _404: NotFound },
     );
 
     const wrapper = mountWithRouter(router);
 
     expect(wrapper.html()).toContain('404 Not Found');
+  });
+
+  it('should apply layouts to nested index routes', () => {
+    const { router } = createMockRouter(
+      { name: '/users', params: { text: 'Users Index' } },
+      {
+        '/users': { component: Page, isIndex: true },
+        '/users/show': { component: Page, isIndex: false },
+      },
+      {
+        _root: RootLayout,
+        'users/_layout': UsersLayout,
+      },
+    );
+
+    const wrapper = mountWithRouter(router);
+    const root = wrapper.find('[data-testid="root-layout"]');
+    const users = root.find('[data-testid="users-layout"]');
+
+    expect(root.exists()).toBe(true);
+    expect(users.exists()).toBe(true);
+    expect(users.html()).toContain('Page: Users Index');
+  });
+
+  it('should apply layout to a nested index route without other child routes', () => {
+    const ProfileLayout = defineComponent({
+      setup(_, { slots }) {
+        return () =>
+          h('div', { 'data-testid': 'profile-layout' }, [
+            'Profile ',
+            slots.default ? slots.default() : [],
+          ]);
+      },
+    });
+
+    const { router } = createMockRouter(
+      { name: '/profile', params: { text: 'Profile Index' } },
+      {
+        '/profile': { component: Page, isIndex: true },
+      },
+      {
+        _root: RootLayout,
+        'profile/_layout': ProfileLayout,
+      },
+    );
+
+    const wrapper = mountWithRouter(router);
+    const root = wrapper.find('[data-testid="root-layout"]');
+    const profile = root.find('[data-testid="profile-layout"]');
+
+    expect(root.exists()).toBe(true);
+    expect(profile.exists()).toBe(true);
+    expect(profile.html()).toContain('Page: Profile Index');
   });
 });
