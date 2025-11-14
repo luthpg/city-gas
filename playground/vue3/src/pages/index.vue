@@ -1,9 +1,3 @@
 <template>
-  <div>
-    <h2>Home Page</h2>
-    <p>Welcome to city-gas Vue Playground!</p>
-  </div>
+  <div>Index Page</div>
 </template>
-
-<script setup lang="ts">
-</script>

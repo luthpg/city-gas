@@ -13,9 +13,12 @@ export const RouterOutlet = defineComponent({
       const { name, params } = route.value;
       const { pages, specialPages } = router;
 
-      const PageComponent = pages[name];
+      const pageInfo = pages[name] as {
+        component: any;
+        isIndex: boolean;
+      };
 
-      if (!PageComponent) {
+      if (!pageInfo) {
         const NotFoundComponent = specialPages._404;
         if (NotFoundComponent) {
           return h(NotFoundComponent);
@@ -23,13 +26,17 @@ export const RouterOutlet = defineComponent({
         return h('div', '404 Not Found.');
       }
 
-      const pathParts = name.split('/').filter(Boolean).slice(0, -1);
+      const { component: PageComponent, isIndex } = pageInfo;
+
+      const pathParts = name.split('/').filter(Boolean);
+      const parentPathParts = isIndex ? pathParts : pathParts.slice(0, -1);
       let LayoutComponent = null;
 
-      for (let i = pathParts.length; i >= 0; i--) {
-        const potentialLayoutPath = [...pathParts.slice(0, i), '_layout'].join(
-          '/',
-        );
+      for (let i = parentPathParts.length; i > 0; i--) {
+        const potentialLayoutPath = [
+          ...parentPathParts.slice(0, i),
+          '_layout',
+        ].join('/');
         if (specialPages[potentialLayoutPath]) {
           LayoutComponent = specialPages[potentialLayoutPath];
           break;
