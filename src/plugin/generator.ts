@@ -167,23 +167,59 @@ export async function generate(rootDir: string) {
   );
 
   const specialFileNames = ['_layout', '_root', '_404'];
-  const pageFiles = allFiles.filter((file) => {
+  const pageFiles: string[] = [];
+  const specialFiles: string[] = [];
+
+  allFiles.forEach((file) => {
     const fileName = path.basename(file, path.extname(file));
-    return !specialFileNames.includes(fileName);
+    if (specialFileNames.includes(fileName)) {
+      specialFiles.push(file);
+    } else {
+      pageFiles.push(file);
+    }
   });
 
-  const specialFiles = allFiles.filter((file) => {
-    const fileName = path.basename(file, path.extname(file));
-    return specialFileNames.includes(fileName);
-  });
+  // 2. ルートの重複解決 (Map を使用)
+  const routeMap = new Map<string, { path: string; isIndex: boolean }>();
 
-  const routes = pageFiles.map((file) => {
+  for (const file of pageFiles) {
     const { name, isIndex } = pathToRouteInfo(pagesDir, file);
+    const existing = routeMap.get(name);
+
+    if (!existing) {
+      // 競合なし、そのまま追加
+      routeMap.set(name, { path: file, isIndex });
+    } else {
+      // 競合発生
+      if (existing.isIndex && !isIndex) {
+        // 既存が index (優先)、新しいファイル (非 index) を無視
+        console.warn(
+          `[city-gas] Warning: Route conflict detected. ${file} is ignored because ${existing.path} takes precedence (route name: "${name}").`,
+        );
+      } else if (!existing.isIndex && isIndex) {
+        // 新しいファイルが index (優先)、既存 (非 index) を上書き
+        console.warn(
+          `[city-gas] Warning: Route conflict detected. ${existing.path} is ignored because ${file} takes precedence (route name: "${name}").`,
+        );
+        routeMap.set(name, { path: file, isIndex });
+      } else {
+        // 両方 index または両方非 index (通常は発生しないが、念のため)
+        // 最後に処理されたファイルを採用する
+        console.warn(
+          `[city-gas] Warning: Ambiguous route conflict for "${name}". Using ${file} over ${existing.path}.`,
+        );
+        routeMap.set(name, { path: file, isIndex });
+      }
+    }
+  }
+
+  // 3. マップから最終的なルートリストを作成
+  const routes = Array.from(routeMap.entries()).map(([name, info]) => {
     return {
-      path: file,
+      path: info.path,
       name,
-      isIndex,
-      params: extractParams(file),
+      isIndex: info.isIndex,
+      params: extractParams(info.path), // パラメータ抽出は最後に行う
     };
   });
 

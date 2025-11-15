@@ -3,24 +3,24 @@
 import P5 from '../pages/_404.tsx';
 import P6 from '../pages/_root.tsx';
 import P0 from '../pages/about.tsx';
-import P8 from '../pages/config/_layout.tsx';
-import P4 from '../pages/config/index.tsx';
+import P7 from '../pages/config/_layout.tsx';
+import P2 from '../pages/config/index.tsx';
 import P1 from '../pages/index.tsx';
-import P7 from '../pages/users/_layout.tsx';
-import P2 from '../pages/users/index.tsx';
-import P3 from '../pages/users/show.tsx';
+import P8 from '../pages/users/_layout.tsx';
+import P3 from '../pages/users/index.tsx';
+import P4 from '../pages/users/show.tsx';
 
 export const pages = {
   '/about': { component: P0, isIndex: false },
   '/': { component: P1, isIndex: true },
-  '/users': { component: P2, isIndex: true },
-  '/users/show': { component: P3, isIndex: false },
-  '/config': { component: P4, isIndex: true },
+  '/config': { component: P2, isIndex: true },
+  '/users': { component: P3, isIndex: true },
+  '/users/show': { component: P4, isIndex: false },
 };
 
 export const specialPages = {
   _404: P5,
   _root: P6,
-  'users/_layout': P7,
-  'config/_layout': P8,
+  'config/_layout': P7,
+  'users/_layout': P8,
 };

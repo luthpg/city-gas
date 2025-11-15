@@ -38,6 +38,8 @@
   - `src/pages/**/*.{tsx,vue}` を探索
   - `params` DSL と動的パスパラメータを解析し、型定義 (`.generated/router.d.ts`) を生成
   - ルートとコンポーネントのマッピング情報 (`.generated/routes.ts`) を生成
+  - ルート競合の解決: `index` ファイル（例: `test/index.tsx`）を通常ファイル（例: `test.tsx`）より優先する。
+  - HMR キャッシュ: ファイルI/OとAST解析を最小限にするため、インメモリキャッシュ（ファイル最終更新日時、解析結果）を保持する。
 - **Generated Files**
   - `router.d.ts`: `RouteNames`, `RouteParams` の型定義
   - `routes.ts`: ルート名とコンポーネントの対応マップ
@@ -106,6 +108,12 @@
 - **処理**: AST 解析で `export const params` を抽出
 - **出力**: `.generated/router.d.ts`, `.generated/routes.ts`
 - **HMR 対応**: ファイル変更で型を再生成
+- **競合解決**: `pathToRouteInfo` のロジックにおいて、`index` ファイルが競合する通常ファイルより優先されるように `Map` を用いて解決する。競合発生時はコンソールに警告を表示する。
+- **HMR キャッシュ戦略**:
+  - **ファイルキャッシュ (インメモリ)**: `Map<filePath, { mtimeMs, params, routeInfo }>` を保持する。
+  - **`fs.statSync` で `mtimeMs` を比較**: ファイル変更の有無を `stat` のみで高速に判定する。
+  - **変更時のみ `fs.readFileSync` と AST 解析を実行**: キャッシュミス（新規または変更）したファイルのみI/Oと解析を行う。
+  - **コンテンツキャッシュ (インメモリ)**: 生成した `router.d.ts` と `routes.ts` の内容（文字列）を保持し、前回と同一内容の場合は `fs.writeFileSync` をスキップする。
 
 ---
 
@@ -115,6 +123,7 @@
 - DSL 不正 → ビルドエラー
 - params 不一致 → TypeScript コンパイルエラー
 - GAS API 未定義 → ブラウザモードにフォールバック
+- ルート競合 → コンソールに警告 (warn) を表示
 
 ---
 

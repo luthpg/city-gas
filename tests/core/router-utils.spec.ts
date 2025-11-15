@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseLocation, serializeParams } from '../../src/core/router';
+import { parseLocation, serializeParams } from '@/core/router';
 
 describe('Core Composables', () => {
   describe('serializeParams', () => {
