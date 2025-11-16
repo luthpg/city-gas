@@ -32,7 +32,7 @@
 - [ ] Issue: 動的ルート - 型生成への統合
 - [ ] Issue: ナビゲーションガード - `router.beforeEach` API の実装
 - [ ] Issue: Vite Plugin (DX): HMR 時のパフォーマンス最適化（ファイルI/O削減のためのキャッシュ戦略導入）
-- [ ] Issue: Vite Plugin (堅牢化): ルート競合の解決（`index` 優先）と警告表示
+- [x] Issue: Vite Plugin (堅牢化): ルート競合の解決（`index` 優先）と警告表示
 
 ## Milestone: v0.4.0 — Zod 対応
 
