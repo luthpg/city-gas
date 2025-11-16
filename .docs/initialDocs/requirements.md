@@ -189,9 +189,13 @@ router.beforeEach((to, from, next) => {
 
 - `src/pages/**/*.{tsx,vue}` を探索
 - ファイル名からルート名を生成
+- `index` ファイル（`test/index.tsx`）と通常ファイル（`test.tsx`）の競合を解決し、`index` を優先する
 - `params` オブジェクトを解析し、必須/任意/enum/配列/ネストを型に変換
 - `.generated/router.d.ts` と `.generated/routes.ts` を出力
 - HMR 対応でファイル追加/削除/変更時に型を再生成
+- HMR時のパフォーマンス最適化（ファイルI/O削減）:
+  - 変更のないファイルのAST解析をスキップするため、ファイルキャッシュ（mtime, 解析結果）を導入する。
+  - 生成される型定義やルートマップの内容が前回と同一の場合、ファイル書き込み（writeFileSync）をスキップする。
 
 ### 変換ロジック (再帰)
 
@@ -208,6 +212,7 @@ router.beforeEach((to, from, next) => {
 - GAS API 未定義 → ブラウザモードにフォールバック
 - params 不一致 → TypeScript コンパイルエラー
 - DSL が不正 → ビルドエラー
+- ルート競合（`index` 優先）→ コンソールに警告 (warn) を出力
 
 ---
 
