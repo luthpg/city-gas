@@ -7,7 +7,7 @@
 - [x] `createRouter` の実装（ジェネリクス、内部ストア、購読通知）
 - [x] `navigate` の実装（クエリシリアライズ、履歴操作）
 - [x] `subscribe` と `getCurrentRoute` の実装
-- [ ] `router.beforeEach` の実装（ナビゲーションガード）
+- [x] `router.beforeEach` の実装（ナビゲーションガード）
 
 ---
 
@@ -61,7 +61,7 @@
 - [x] **単体テスト**: DSL → TS 型変換、クエリシリアライズ、Hooks/Composables
 - [ ] **統合テスト**: React/Vue 環境でのルーター全体の動作確認
 - [x] **単体テスト**: ネストされたルートの解決ロジック
-- [ ] **単体テスト**: ナビゲーションガード
+- [x] **単体テスト**: ナビゲーションガード
 - [ ] **E2E テスト**: GAS/ブラウザ環境での実動作確認
 - [x] **単体テスト (Vite Plugin)**: ルート競合解決（`index` 優先）のテストケースを追加。
 - [ ] **単体テスト (Vite Plugin)**: キャッシュ戦略（`add`, `change`, `unlink`) 時のI/O動作（`stat`, `read`, `write` の呼び出し回数）をモックを使用してテスト。
