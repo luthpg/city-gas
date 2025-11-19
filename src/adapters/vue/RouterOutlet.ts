@@ -1,4 +1,4 @@
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from '@/adapters/vue/composables';
 
 export const RouterOutlet = defineComponent({
@@ -7,7 +7,18 @@ export const RouterOutlet = defineComponent({
     const route = useRoute();
     const router = useRouter();
 
+    const isReady = ref(router.isReady());
+
+    const unsubscribe = router.subscribe(() => {
+      isReady.value = router.isReady();
+    });
+
+    onUnmounted(() => {
+      unsubscribe();
+    });
+
     return () => {
+      if (!isReady.value) return null; // TODO: Loading component with dynamic import
       if (!route.value) return null;
 
       const { name, params } = route.value;

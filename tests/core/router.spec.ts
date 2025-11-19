@@ -24,20 +24,23 @@ interface AppRouteParams {
 describe('Core Router', () => {
   let router: Router<AppRouteNames, AppRouteParams>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mocks before each test
     vi.clearAllMocks();
-    // Mock implementation of getLocation to immediately call the callback
-    mockAdapter.getLocation.mockImplementation((cb) => cb('?page='));
+    // Mock implementation of getLocation to return a promise
+    mockAdapter.getLocation.mockResolvedValue('?page=');
 
     router = createRouter<AppRouteNames, AppRouteParams>(
       {
-        '/': () => null,
-        '/about': () => null,
-        '/users/show': () => null,
+        '/': { component: null, isIndex: true },
+        '/about': { component: null, isIndex: false },
+        '/users/show': { component: null, isIndex: false },
       },
       { defaultRouteName: '/' },
     );
+
+    // Wait for router initialization
+    await new Promise(process.nextTick);
   });
 
   it('should initialize with the default route', () => {

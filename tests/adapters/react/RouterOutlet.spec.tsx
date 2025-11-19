@@ -37,6 +37,7 @@ const createMockRouter = (
       return () => listeners.delete(listener);
     },
     getCurrentRoute: () => currentRoute,
+    isReady: () => true,
   } as unknown as Router<string, any>;
 
   return { router };
