@@ -1,4 +1,3 @@
-// biome-ignore lint/style/useImportType: import for using jsx
 import * as React from 'react';
 import { useRoute, useRouter } from '@/adapters/react/hooks';
 import type {
@@ -12,6 +11,12 @@ export function RouterOutlet<
 >() {
   const route = useRoute<R, P>();
   const router = useRouter<R, P>();
+  const isReady = React.useSyncExternalStore(
+    router.subscribe,
+    () => router.isReady(),
+    () => router.isReady(),
+  );
+  if (!isReady) return null; // TODO: Loading component with dynamic import
   if (!route) return null;
 
   const { name, params } = route;

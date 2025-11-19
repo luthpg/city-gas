@@ -20,8 +20,7 @@ describe('Browser Adapter', () => {
     expect(replaceStateSpy).toHaveBeenCalledWith({}, '', '/test');
   });
 
-  it('getLocation should call the callback with window.location.search', () => {
-    const callback = vi.fn();
+  it('getLocation should return a promise that resolves with window.location.search', async () => {
     // Mock window.location.search
     Object.defineProperty(window, 'location', {
       value: {
@@ -29,8 +28,8 @@ describe('Browser Adapter', () => {
       },
       writable: true,
     });
-    browserAdapter.getLocation(callback);
-    expect(callback).toHaveBeenCalledWith('?page=/home');
+    const location = await browserAdapter.getLocation();
+    expect(location).toBe('?page=/home');
   });
 
   it('onChange should add a popstate event listener', () => {

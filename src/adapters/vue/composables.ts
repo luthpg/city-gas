@@ -1,6 +1,7 @@
 import {
   type DeepReadonly,
   inject,
+  onMounted,
   onUnmounted,
   type Ref,
   readonly,
@@ -34,12 +35,16 @@ function useStore<
 
   const state = ref(selector(router.getCurrentRoute()));
 
-  const unsubscribe = router.subscribe((newRoute) => {
-    state.value = selector(newRoute);
+  let unsubscribe: (() => void) | null = null;
+
+  onMounted(() => {
+    unsubscribe = router.subscribe((newRoute) => {
+      state.value = selector(newRoute);
+    });
   });
 
   onUnmounted(() => {
-    unsubscribe();
+    unsubscribe?.();
   });
 
   return readonly(state);

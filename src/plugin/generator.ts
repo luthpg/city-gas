@@ -15,8 +15,7 @@ function extractParamsFromTs(
     ts.ScriptTarget.Latest,
     true,
   );
-
-  let paramsNode: ts.Node | undefined;
+  let paramsNode: ts.ObjectLiteralExpression | undefined;
 
   function findParams(node: ts.Node) {
     if (
@@ -24,7 +23,11 @@ function extractParamsFromTs(
       node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
     ) {
       for (const decl of node.declarationList.declarations) {
-        if (decl.name.getText(sourceFile) === 'params') {
+        if (
+          decl.name.getText(sourceFile) === 'params' &&
+          decl.initializer &&
+          ts.isObjectLiteralExpression(decl.initializer)
+        ) {
           paramsNode = decl.initializer;
           break;
         }
@@ -38,15 +41,49 @@ function extractParamsFromTs(
   findParams(sourceFile);
 
   if (paramsNode) {
-    const paramsText = paramsNode.getText(sourceFile);
-    try {
-      return new Function(`return (${paramsText})`)();
-    } catch (e) {
-      console.error(`Error evaluating params from ${filePath}:`, e);
+    return parseObjectLiteral(paramsNode, sourceFile);
+  }
+  return undefined;
+}
+
+function parseObjectLiteral(
+  node: ts.ObjectLiteralExpression,
+  sourceFile: ts.SourceFile,
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const prop of node.properties) {
+    if (ts.isPropertyAssignment(prop)) {
+      const key = prop.name.getText(sourceFile);
+      const value = parseValue(prop.initializer, sourceFile);
+      result[key] = value;
     }
   }
 
-  return undefined;
+  return result;
+}
+
+function parseValue(node: ts.Expression, sourceFile: ts.SourceFile): any {
+  if (ts.isStringLiteral(node)) {
+    return node.text;
+  }
+  if (ts.isNumericLiteral(node)) {
+    return Number(node.text);
+  }
+  if (node.kind === ts.SyntaxKind.TrueKeyword) {
+    return true;
+  }
+  if (node.kind === ts.SyntaxKind.FalseKeyword) {
+    return false;
+  }
+  if (ts.isObjectLiteralExpression(node)) {
+    return parseObjectLiteral(node, sourceFile);
+  }
+  if (ts.isArrayLiteralExpression(node)) {
+    return node.elements.map((el) => parseValue(el, sourceFile));
+  }
+  // Fallback: 文字列として返す
+  return node.getText(sourceFile);
 }
 
 function extractParams(filePath: string): Record<string, any> | undefined {

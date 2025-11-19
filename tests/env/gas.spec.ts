@@ -37,13 +37,12 @@ describe('GAS Adapter', () => {
     );
   });
 
-  it('getLocation should call google.script.url.getLocation and callback with search string', () => {
-    const callback = vi.fn();
+  it('getLocation should call google.script.url.getLocation and resolve with search string', async () => {
     mockGoogleScript.url.getLocation.mockImplementation((cb) => {
       cb({ parameter: { page: '/home', id: '456' } });
     });
-    gasAdapter.getLocation(callback);
-    expect(callback).toHaveBeenCalledWith('?page=%2Fhome&id=456');
+    const location = await gasAdapter.getLocation();
+    expect(location).toBe('?page=%2Fhome&id=456');
   });
 
   it('onChange should call google.script.history.setChangeHandler', () => {
