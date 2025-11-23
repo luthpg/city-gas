@@ -3,7 +3,7 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { generate } from '@/plugin/generator';
 
-const tempDir = path.resolve(__dirname, '.temp');
+const tempDir = path.resolve(__dirname, '.temp-gen-spec');
 
 describe('Plugin Generator', () => {
   beforeAll(() => {
@@ -48,6 +48,45 @@ describe('Plugin Generator', () => {
     expect(routesContent).toContain(
       `import P2 from '../pages/users/show.vue';`,
     );
+  });
+
+  it('should handle dynamic routes ([param].tsx)', async () => {
+    const rootDir = path.join(tempDir, 'project-dynamic');
+    const pagesDir = path.join(rootDir, 'src', 'pages');
+    fs.mkdirSync(pagesDir, { recursive: true });
+    fs.mkdirSync(path.join(pagesDir, 'users'), { recursive: true });
+
+    // src/pages/users/[userId].tsx
+    fs.writeFileSync(
+      path.join(pagesDir, 'users', '[userId].tsx'),
+      `export const params = { extra: 'string?' };`,
+    );
+
+    await generate(rootDir);
+
+    // Check router.d.ts
+    const typeContent = fs.readFileSync(
+      path.join(rootDir, 'src', 'generated', 'router.d.ts'),
+      'utf-8',
+    );
+    // Should contain route name with brackets
+    expect(typeContent).toContain('"/users/[userId]"');
+    // Should merge path param (userId: string) and dsl param (extra?: string)
+    expect(typeContent).toContain('userId: string;');
+    expect(typeContent).toContain('extra?: string;');
+
+    // Check routes.ts
+    const routesContent = fs.readFileSync(
+      path.join(rootDir, 'src', 'generated', 'routes.ts'),
+      'utf-8',
+    );
+    // Should export dynamicRoutes
+    expect(routesContent).toContain('export const dynamicRoutes = [');
+    expect(routesContent).toContain('name: "/users/[userId]"');
+    // Check regex pattern generation (note: backslashes are escaped in the file content string)
+    // pattern: /^\/users\/([^/]+)$/
+    expect(routesContent).toContain('pattern: /^\\/users\\/([^/]+)$/');
+    expect(routesContent).toContain('paramNames: ["userId"]');
   });
 
   it('should handle special files like _layout and _root', async () => {

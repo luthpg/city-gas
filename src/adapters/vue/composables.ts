@@ -74,6 +74,7 @@ export function useNavigate<
 export function useParams<
   R extends string = RegisteredRouteNames,
   P extends Record<R, any> = RegisteredRouteParams,
->(): DeepReadonly<Ref<P[R]>> {
+  // biome-ignore lint/correctness/noUnusedFunctionParameters: 型推論にのみ利用
+>(routeName: R): DeepReadonly<Ref<P[R]>> {
   return useStore((route) => route.params);
 }

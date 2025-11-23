@@ -2,6 +2,7 @@
   <nav>
     <button @click="goHome">Go Home</button>
     <button @click="goUser">Go User 123</button>
+    <button @click="goUserInfo">Go User Info 123</button>
     <button @click="goAbout">Go About</button>
   </nav>
 </template>
@@ -12,6 +13,7 @@ import { useNavigate } from '@ciderjs/city-gas/vue';
 const navigate = useNavigate();
 
 const goHome = () => navigate('/');
-const goUser = () => navigate('/users/show', { userId: '123' });
+const goUser = () => navigate('/users/show', { tab: '123' });
+const goUserInfo = () => navigate('/users/[userId]', { userId: '123' });
 const goAbout = () => navigate('/about');
 </script>

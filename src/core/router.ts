@@ -36,6 +36,12 @@ export type NavigationGuard<
   next: NavigationGuardNext,
 ) => void;
 
+export interface DynamicRoute {
+  name: string;
+  pattern: RegExp;
+  paramNames: string[];
+}
+
 export interface Router<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
@@ -56,16 +62,17 @@ export interface Router<
   isReady: () => boolean;
   pages: Record<RouteNames, { component: PageComponent; isIndex: boolean }>;
   specialPages: Record<string, PageComponent>;
+  dynamicRoutes: DynamicRoute[];
 }
 
 export function parseLocation<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
->(location: string): Route<RouteNames, RouteParams> {
+>(location: string): { name: string; params: any } {
   const search = new URLSearchParams(location);
-  let name = search.get('page') as RouteNames;
+  let name = search.get('page') as string; // RouteNames may not cover all path variations initially
   if (name === '/index') {
-    name = '/' as RouteNames;
+    name = '/';
   }
 
   const params = {} as RouteParams[RouteNames];
@@ -75,15 +82,14 @@ export function parseLocation<
     // 1. 配列形式のパラメータ (e.g. ?tags=a&tags=b)
     const allValues = search.getAll(key);
     if (allValues.length > 1) {
-      (params as any)[key] = allValues;
+      params[key] = allValues;
       return;
     }
 
     // 2. JSON オブジェクト形式のパラメータ
-    // (getAll 済みなので value は単一)
     if (value.startsWith('{') && value.endsWith('}')) {
       try {
-        (params as any)[key] = JSON.parse(value);
+        params[key] = JSON.parse(value);
         return;
       } catch {
         // JSON パース失敗時は、通常の文字列としてフォールバック
@@ -91,7 +97,7 @@ export function parseLocation<
     }
 
     // 3. 通常の文字列パラメータ
-    (params as any)[key] = value;
+    params[key] = value;
   });
 
   return { name, params };
@@ -124,11 +130,13 @@ export function createRouter<
   options?: {
     specialPages?: Record<string, PageComponent>;
     defaultRouteName?: DefaultRouteName;
+    dynamicRoutes?: DynamicRoute[];
   },
 ): Router<RouteNames, RouteParams, PageComponent> {
   const adapter = getAdapter();
   const listeners: Set<Listener<RouteNames, RouteParams>> = new Set();
   const specialPages = options?.specialPages ?? {};
+  const dynamicRoutes = options?.dynamicRoutes ?? [];
   let ready = false;
 
   let currentRoute: Route<RouteNames, RouteParams> = {
@@ -143,38 +151,53 @@ export function createRouter<
   }
 
   function resolveRoute(location: string): Route<RouteNames, RouteParams> {
-    const route = parseLocation<RouteNames, RouteParams>(location);
-    if (route.name) {
-      if (!pages[route.name]) {
-        route.name = '_404' as RouteNames;
+    const parsed = parseLocation<RouteNames, RouteParams>(location);
+    let { name, params } = parsed;
+
+    // 1. 静的ルートのチェック
+    if (name && pages[name as RouteNames]) {
+      // 既存の静的ルートにマッチ
+    } else if (name) {
+      // 2. 動的ルートのチェック
+      let matched = false;
+      for (const dynamic of dynamicRoutes) {
+        const match = name.match(dynamic.pattern);
+        if (match) {
+          name = dynamic.name; // ルート名を定義名 (例: /users/[id]) に正規化
+          matched = true;
+
+          // パスパラメータを params にマージ
+          dynamic.paramNames.forEach((paramName, index) => {
+            params[paramName] = match[index + 1];
+          });
+          break;
+        }
+      }
+
+      if (!matched) {
+        name = '_404';
       }
     } else if (options?.defaultRouteName) {
-      route.name = options.defaultRouteName;
+      name = options.defaultRouteName;
     } else {
-      route.name = '/' as RouteNames;
+      name = '/';
     }
-    return route;
+
+    return {
+      name: name as RouteNames,
+      params: params as RouteParams[RouteNames],
+    };
   }
 
   adapter.getLocation().then((location) => {
-    const parsed = parseLocation<RouteNames, RouteParams>(location);
-
-    // パース結果が空(page指定なし)かつデフォルトがある場合
-    if (!parsed.name && options?.defaultRouteName) {
-      currentRoute = {
-        name: options.defaultRouteName,
-        params: {} as any,
-      };
-    } else {
-      currentRoute = parsed;
-    }
-
+    const nextRoute = resolveRoute(location);
+    currentRoute = nextRoute;
     ready = true;
-    notify(); // 初期化完了を通知
+    notify();
   });
 
   adapter.onChange((location) => {
-    if (!ready) return; // ignore changes before initialization
+    if (!ready) return;
     const nextRoute = resolveRoute(location);
 
     // Note: Handling browser back/forward with guards is complex.
@@ -204,17 +227,13 @@ export function createRouter<
 
     const runGuards = (index: number) => {
       if (index >= guards.length) {
-        // All guards passed
         finalizeNavigation();
         return;
       }
 
       const guard = guards[index];
       guard(nextRoute, currentRoute, (nextState) => {
-        if (nextState === false) {
-          // Navigation cancelled
-          return;
-        }
+        if (nextState === false) return;
         if (typeof nextState === 'string') {
           // Redirect
           // nextState is route name, but we need to parse if it has params?
@@ -234,7 +253,6 @@ export function createRouter<
           internalNavigate(nextState as RouteNames);
           return;
         }
-        // Continue to next guard
         runGuards(index + 1);
       });
     };
@@ -242,8 +260,23 @@ export function createRouter<
     runGuards(0);
 
     function finalizeNavigation() {
-      const query = nextParams ? serializeParams(nextParams as any) : '';
-      const url = query ? `?page=${name}&${query}` : `?page=${name}`;
+      let pagePath = name as string;
+      const queryParams = { ...nextParams };
+
+      if (pagePath.includes('[')) {
+        pagePath = pagePath.replace(/\[([^\][]+)\]/g, (_, paramName) => {
+          if (paramName in queryParams) {
+            const value = queryParams[paramName];
+            delete queryParams[paramName];
+            return encodeURIComponent(String(value));
+          }
+          return `[${paramName}]`;
+        });
+      }
+
+      const query = serializeParams(queryParams);
+      const url = query ? `?page=${pagePath}&${query}` : `?page=${pagePath}`;
+
       if (options?.replace) {
         adapter.replace(url);
       } else {
@@ -257,6 +290,7 @@ export function createRouter<
   return {
     pages,
     specialPages,
+    dynamicRoutes,
     isReady: () => ready,
     navigate: <N extends RouteNames>(
       name: N,
@@ -272,7 +306,6 @@ export function createRouter<
     },
     subscribe: (listener) => {
       listeners.add(listener);
-      // take current value to listener immediately if initialized
       if (ready) {
         listener(currentRoute);
       }

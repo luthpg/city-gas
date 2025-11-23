@@ -12,9 +12,15 @@ export const Navigation = () => {
       </button>
       <button
         type="button"
-        onClick={() => navigate('/users/show', { userId: '123' })}
+        onClick={() => navigate('/users/show', { tab: '123' })}
       >
-        Go to Profile 123
+        Go to Tab 123
+      </button>
+      <button
+        type="button"
+        onClick={() => navigate('/users/[userId]', { userId: '123' })}
+      >
+        Go to User 123
       </button>
       <button type="button" onClick={() => navigate('/about')}>
         Go to About

@@ -1,15 +1,15 @@
 import { useParams } from '@ciderjs/city-gas/react';
 
 export const params = {
-  userId: 'string',
+  tab: 'string',
 };
 
 export default function UserShowPage() {
-  const { userId } = useParams<'/users/show'>();
+  const { tab } = useParams('/users/show');
   return (
     <div>
       <h2>User Show Page</h2>
-      <p>User ID: {userId}</p>
+      <p>Tab ID: {tab}</p>
     </div>
   );
 }

@@ -3,14 +3,21 @@
 /* eslint-disable */
 /* biome-ignore: auto generated file */
 
-export type RouteNames = '/about' | '/' | '/config' | '/users' | '/users/show';
+export type RouteNames =
+  | '/about'
+  | '/config'
+  | '/'
+  | '/users/[userId]'
+  | '/users'
+  | '/users/show';
 
 export interface RouteParams {
   '/about': {};
-  '/': {};
   '/config': {};
+  '/': {};
+  '/users/[userId]': { userId: string };
   '/users': {};
-  '/users/show': { userId: string };
+  '/users/show': { tab: string };
 }
 
 declare module '@ciderjs/city-gas' {

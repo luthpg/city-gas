@@ -33,6 +33,7 @@ pnpm add @ciderjs/city-gas
 - `src/pages/index.tsx` → `/`
 - `src/pages/about.vue` → `/about`
 - `src/pages/users/show.tsx` → `/users/show`
+- `src/pages/users/[id].tsx` → `/users/[id]` (動的ルート)
 
 ### 2. ネストされたルート (レイアウト)
 
@@ -52,8 +53,17 @@ src/
     ├── index.tsx         # ホームページ (ルート: /)
     └── users/
         ├── _layout.tsx   # /users/* にのみ適用されるネストされたレイアウト
-        └── show.tsx      # ユーザー詳細ページ (ルート: /users/show)
+        ├── [id].tsx      # ユーザー詳細ページ (ルート: /users/[id])
+        └── index.tsx     # ユーザー一覧ページ (ルート: /users)
 ```
+
+### 3. 動的ルート (Dynamic Routes)
+
+ファイル名を `[id].tsx` のようにブラケットで囲むことで、動的ルートを定義できます。
+ブラケット内のパラメータ名（例: `id`）は `useParams` で取得できます。
+
+- `src/pages/users/[id].tsx` は `/users/123`, `/users/abc` などにマッチします。
+- `src/pages/posts/[slug].vue` は `/posts/my-first-post` などにマッチします。
 
 ### 3. 型安全なパラメータ (DSL)
 
@@ -67,9 +77,9 @@ Viteプラグインはこれを検出し、型安全な `navigate` 関数や `us
 #### パラメータ定義の例
 
 ```typescript
-// src/pages/users/show.tsx
+// src/pages/users/[id].tsx
 export const params = {
-  userId: 'string', // 必須
+  // id: 'string', // パスパラメータは自動的に必須の「string」型で定義されるので記載不要
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true }, // オプショナル
 };
 ```
@@ -80,6 +90,9 @@ export const params = {
 
 - `.generated/router.d.ts`: `RouteNames` と `RouteParams` の型定義
 - `.generated/routes.ts`: ルート名とコンポーネントのマッピング
+
+> [!NOTE]
+> プラグインはパフォーマンス最適化のため、ファイルの更新時刻 (`mtime`) に基づく内部キャッシュを使用し、不要な再生成を回避します。
 
 ```ts
 // vite.config.ts
@@ -109,10 +122,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
-import { pages, specialPages } from './generated/routes';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
 // ルーターインスタンスを作成
-const router = createRouter(pages, { specialPages });
+const router = createRouter(pages, { specialPages, dynamicRoutes });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -130,19 +143,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 現在のページのパラメータを型安全に取得します。
 
 ```tsx
-// src/pages/users/show.tsx
+// src/pages/users/[id].tsx
 import { useParams } from '@ciderjs/city-gas/react';
 
 export const params = {
-  userId: 'string',
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
 };
 
-export default function UserShowPage() {
-  const { userId, tab } = useParams<'/users/show'>();
+export default function UserDetail() {
+  // ルート名を引数として渡すことで、厳密な型推論が可能になります
+  const { id, tab } = useParams('/users/[id]');
+  
   return (
     <div>
-      <h2>User: {userId}</h2>
+      <h2>User: {id}</h2>
       <p>Tab: {tab ?? 'profile'}</p>
     </div>
   );
@@ -163,7 +177,7 @@ const MyComponent = () => {
     <nav>
       <button onClick={() => navigate('/')}>Home</button>
       {/* パラメータも型安全 */}
-      <button onClick={() => navigate('/users/show', { userId: '123' })}>
+      <button onClick={() => navigate('/users/[id]', { id: '123', tab: 'settings' })}>
         User 123
       </button>
     </nav>
@@ -184,9 +198,9 @@ const MyComponent = () => {
 import { createRouter } from '@ciderjs/city-gas';
 import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
 import { createApp } from 'vue';
-import { pages, specialPages } from './generated/routes';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-const router = createRouter(pages, { specialPages });
+const router = createRouter(pages, { specialPages, dynamicRoutes });
 createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
 ```
 
@@ -199,10 +213,10 @@ Vue 3 の Composition API で利用できる Composable を提供します。
 現在のページのパラメータを型安全に取得します。
 
 ```vue
-<!-- src/pages/users/show.vue -->
+<!-- src/pages/users/[id].vue -->
 <template>
   <div>
-    <h2>User: {{ userId }}</h2>
+    <h2>User: {{ id }}</h2>
     <p>Tab: {{ tab ?? 'profile' }}</p>
   </div>
 </template>
@@ -210,13 +224,13 @@ Vue 3 の Composition API で利用できる Composable を提供します。
 <script setup lang="ts">
 import { useParams } from '@ciderjs/city-gas/vue';
 
-const { userId, tab } = useParams<'/users/show'>();
+// ルート名を引数として渡すことで、厳密な型推論が可能になります
+const { id, tab } = useParams('/users/[id]');
 </script>
 
 <!-- params のエクスポート用に別の script タグを用意 -->
 <script lang="ts">
 export const params = {
-  userId: 'string',
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
 };
 </script>
@@ -232,7 +246,7 @@ export const params = {
   <nav>
     <button @click="() => navigate('/')">Home</button>
     <!-- パラメータも型安全 -->
-    <button @click="() => navigate('/users/show', { userId: '123' })">
+    <button @click="() => navigate('/users/[id]', { id: '123', tab: 'settings' })">
       User 123
     </button>
   </nav>
