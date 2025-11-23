@@ -44,9 +44,11 @@ describe('Plugin Generator', () => {
       path.join(rootDir, 'src', 'generated', 'routes.ts'),
       'utf-8',
     );
-    expect(routesContent).toContain(`import P0 from '../pages/about.tsx';`);
-    expect(routesContent).toContain(
-      `import P2 from '../pages/users/show.vue';`,
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/about\.tsx';/,
+    );
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/users\/show\.vue';/,
     );
   });
 
@@ -111,17 +113,23 @@ describe('Plugin Generator', () => {
     );
 
     // Check that special files are imported
-    expect(routesContent).toContain(`import P1 from '../pages/_layout.tsx';`);
-    expect(routesContent).toContain(`import P2 from '../pages/_root.tsx';`);
-    expect(routesContent).toContain(
-      `import P3 from '../pages/users/_layout.tsx';`,
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/_layout\.tsx';/,
+    );
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/_root\.tsx';/,
+    );
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/users\/_layout\.tsx';/,
     );
 
     // Check that specialPages object is correct
     expect(routesContent).toContain('export const specialPages = {');
-    expect(routesContent).toContain(`  "_layout": P1,`);
-    expect(routesContent).toContain(`  "_root": P2,`);
-    expect(routesContent).toContain(`  "users/_layout": P3,`);
+    // Check that specialPages object is correct
+    expect(routesContent).toContain('export const specialPages = {');
+    expect(routesContent).toMatch(/\s+"_layout": P_[a-f0-9]+,/);
+    expect(routesContent).toMatch(/\s+"_root": P_[a-f0-9]+,/);
+    expect(routesContent).toMatch(/\s+"users\/_layout": P_[a-f0-9]+,/);
   });
 
   it('should handle route conflicts by prioritizing index files', async () => {
@@ -146,10 +154,12 @@ describe('Plugin Generator', () => {
     );
 
     // Check that the index file is prioritized
-    expect(routesContent).toContain(
-      `import P0 from '../pages/users/index.tsx';`,
+    expect(routesContent).toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/users\/index\.tsx';/,
     );
-    expect(routesContent).not.toContain(`import P0 from '../pages/users.tsx';`);
+    expect(routesContent).not.toMatch(
+      /import P_[a-f0-9]+ from '\.\.\/pages\/users\.tsx';/,
+    );
 
     const typeContent = fs.readFileSync(
       path.join(rootDir, 'src', 'generated', 'router.d.ts'),

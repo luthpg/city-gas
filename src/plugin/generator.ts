@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@vue/compiler-sfc';
@@ -179,6 +180,12 @@ declare module '@ciderjs/city-gas' {
 `;
 }
 
+function generateImportName(filePath: string): string {
+  const hash = crypto.createHash('md5').update(filePath).digest('hex');
+  // Ensure it starts with a letter to be a valid identifier
+  return `P_${hash.slice(0, 8)}`;
+}
+
 function generateRoutesContent(
   rootDir: string,
   routes: { path: string; name: string; isIndex: boolean }[],
@@ -186,28 +193,32 @@ function generateRoutesContent(
 ) {
   const allRoutes = [...routes, ...specialRoutes];
   const imports = allRoutes
-    .map((r, i) => {
+    .map((r) => {
       const importPath = path
         .relative(
           path.dirname(path.resolve(rootDir, 'src/generated/routes.ts')),
           r.path,
         )
         .replace(/\\/g, '/');
-      return `import P${i} from '${importPath}';`;
+      const importName = generateImportName(r.path);
+      return `import ${importName} from '${importPath}';`;
     })
     .join('\n');
 
   const pages = routes
-    .map(
-      (r, i) =>
-        `  ${JSON.stringify(r.name)}: { component: P${i}, isIndex: ${
-          r.isIndex
-        } },`,
-    )
+    .map((r) => {
+      const importName = generateImportName(r.path);
+      return `  ${JSON.stringify(r.name)}: { component: ${importName}, isIndex: ${
+        r.isIndex
+      } },`;
+    })
     .join('\n');
 
   const specialPages = specialRoutes
-    .map((r, i) => `  ${JSON.stringify(r.name)}: P${routes.length + i},`)
+    .map((r) => {
+      const importName = generateImportName(r.path);
+      return `  ${JSON.stringify(r.name)}: ${importName},`;
+    })
     .join('\n');
 
   const dynamicRoutesData = routes

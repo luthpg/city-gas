@@ -3,31 +3,31 @@
 /* eslint-disable */
 /* biome-ignore: auto generated file */
 
-import P6 from '../pages/_404.vue';
-import P7 from '../pages/_root.vue';
-import P0 from '../pages/about.vue';
-import P8 from '../pages/config/_layout.vue';
-import P1 from '../pages/config/index.vue';
-import P2 from '../pages/index.vue';
-import P9 from '../pages/users/_layout.vue';
-import P3 from '../pages/users/[userId].vue';
-import P4 from '../pages/users/index.vue';
-import P5 from '../pages/users/show.vue';
+import P_042ca80c from '../pages/_404.vue';
+import P_4219c1c9 from '../pages/_root.vue';
+import P_0b53a081 from '../pages/about.vue';
+import P_eabb8eac from '../pages/config/_layout.vue';
+import P_5908c755 from '../pages/config/index.vue';
+import P_13e067ab from '../pages/index.vue';
+import P_75fb65e5 from '../pages/users/_layout.vue';
+import P_12d28c32 from '../pages/users/[userId].vue';
+import P_cef2d727 from '../pages/users/index.vue';
+import P_f3a8413d from '../pages/users/show.vue';
 
 export const pages = {
-  '/about': { component: P0, isIndex: false },
-  '/config': { component: P1, isIndex: true },
-  '/': { component: P2, isIndex: true },
-  '/users/[userId]': { component: P3, isIndex: false },
-  '/users': { component: P4, isIndex: true },
-  '/users/show': { component: P5, isIndex: false },
+  '/about': { component: P_0b53a081, isIndex: false },
+  '/config': { component: P_5908c755, isIndex: true },
+  '/': { component: P_13e067ab, isIndex: true },
+  '/users/[userId]': { component: P_12d28c32, isIndex: false },
+  '/users': { component: P_cef2d727, isIndex: true },
+  '/users/show': { component: P_f3a8413d, isIndex: false },
 };
 
 export const specialPages = {
-  _404: P6,
-  _root: P7,
-  'config/_layout': P8,
-  'users/_layout': P9,
+  _404: P_042ca80c,
+  _root: P_4219c1c9,
+  'config/_layout': P_eabb8eac,
+  'users/_layout': P_75fb65e5,
 };
 
 export const dynamicRoutes = [
