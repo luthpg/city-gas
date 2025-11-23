@@ -3,31 +3,31 @@
 /* eslint-disable */
 /* biome-ignore: auto generated file */
 
-import P6 from '../pages/_404.tsx';
-import P7 from '../pages/_root.tsx';
-import P0 from '../pages/about.tsx';
-import P8 from '../pages/config/_layout.tsx';
-import P1 from '../pages/config/index.tsx';
-import P2 from '../pages/index.tsx';
-import P9 from '../pages/users/_layout.tsx';
-import P3 from '../pages/users/[userId].tsx';
-import P4 from '../pages/users/index.tsx';
-import P5 from '../pages/users/show.tsx';
+import P_9f60edf7 from '../pages/_404.tsx';
+import P_04059d0a from '../pages/_root.tsx';
+import P_fffd9681 from '../pages/about.tsx';
+import P_461da086 from '../pages/config/_layout.tsx';
+import P_bd71fe9e from '../pages/config/index.tsx';
+import P_3cd6ec19 from '../pages/index.tsx';
+import P_9c055ae7 from '../pages/users/_layout.tsx';
+import P_35811af1 from '../pages/users/[userId].tsx';
+import P_fb177fbf from '../pages/users/index.tsx';
+import P_1b714624 from '../pages/users/show.tsx';
 
 export const pages = {
-  '/about': { component: P0, isIndex: false },
-  '/config': { component: P1, isIndex: true },
-  '/': { component: P2, isIndex: true },
-  '/users/[userId]': { component: P3, isIndex: false },
-  '/users': { component: P4, isIndex: true },
-  '/users/show': { component: P5, isIndex: false },
+  '/about': { component: P_fffd9681, isIndex: false },
+  '/config': { component: P_bd71fe9e, isIndex: true },
+  '/': { component: P_3cd6ec19, isIndex: true },
+  '/users/[userId]': { component: P_35811af1, isIndex: false },
+  '/users': { component: P_fb177fbf, isIndex: true },
+  '/users/show': { component: P_1b714624, isIndex: false },
 };
 
 export const specialPages = {
-  _404: P6,
-  _root: P7,
-  'config/_layout': P8,
-  'users/_layout': P9,
+  _404: P_9f60edf7,
+  _root: P_04059d0a,
+  'config/_layout': P_461da086,
+  'users/_layout': P_9c055ae7,
 };
 
 export const dynamicRoutes = [

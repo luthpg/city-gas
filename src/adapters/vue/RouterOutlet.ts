@@ -41,7 +41,7 @@ export const RouterOutlet = defineComponent({
 
       const pathParts = name.split('/').filter(Boolean);
       const parentPathParts = isIndex ? pathParts : pathParts.slice(0, -1);
-      let LayoutComponent = null;
+      let nodeToRender = h(PageComponent, params);
 
       for (let i = parentPathParts.length; i > 0; i--) {
         const potentialLayoutPath = [
@@ -49,19 +49,13 @@ export const RouterOutlet = defineComponent({
           '_layout',
         ].join('/');
         if (specialPages[potentialLayoutPath]) {
-          LayoutComponent = specialPages[potentialLayoutPath];
-          break;
+          const LayoutComponent = specialPages[potentialLayoutPath];
+          const innerNode = nodeToRender;
+          nodeToRender = h(LayoutComponent, null, { default: () => innerNode });
         }
       }
 
       const RootComponent = specialPages._root;
-
-      let nodeToRender = h(PageComponent, params);
-
-      if (LayoutComponent) {
-        const innerNode = nodeToRender;
-        nodeToRender = h(LayoutComponent, null, { default: () => innerNode });
-      }
 
       if (RootComponent) {
         const innerNode = nodeToRender;
