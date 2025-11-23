@@ -28,18 +28,19 @@
 
 --------------------------------------------------
 
-- [ ] Issue: 動的ルート - `[id].tsx` の検出と型安全なパスパラメータ抽出
-- [ ] Issue: 動的ルート - 型生成への統合
+- [x] Issue: 動的ルート - `[id].tsx` の検出と型安全なパスパラメータ抽出
+- [x] Issue: 動的ルート - 型生成への統合
 - [x] Issue: ナビゲーションガード - `router.beforeEach` API の実装
-- [ ] Issue: Vite Plugin (DX): HMR 時のパフォーマンス最適化（ファイルI/O削減のためのキャッシュ戦略導入）
+- [x] Issue: Vite Plugin (DX): HMR 時のパフォーマンス最適化（ファイルI/O削減のためのキャッシュ戦略導入）
 - [x] Issue: Vite Plugin (堅牢化): ルート競合の解決（`index` 優先）と警告表示
 
-## Milestone: v0.4.0 — Zod 対応
+## Milestone: v0.4.0 — Zod 対応 & Metaデータの対応
 
 --------------------------------------------------
 
 - [ ] Issue: Zod - DSL → Zod スキーマ変換
 - [ ] Issue: Zod - z.infer による型生成と実行時バリデーション
+- [ ] Issue: Metaデータの対応
 
 ## Milestone: v1.0.0 — 安定版リリース
 

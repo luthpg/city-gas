@@ -33,6 +33,7 @@ Your `src/pages` directory structure is automatically converted into route defin
 - `src/pages/index.tsx` → `/`
 - `src/pages/about.vue` → `/about`
 - `src/pages/users/show.tsx` → `/users/show`
+- `src/pages/users/[id].tsx` → `/users/[id]` (Dynamic Route)
 
 ### 2. Nested Routes (Layouts)
 
@@ -53,9 +54,17 @@ src/
     ├── index.tsx         # Home page (route: /)
     └── users/
         ├── _layout.tsx   # Nested layout for /users/* routes only
-        ├── index.tsx     # User top page (route: /users)
-        └── show.tsx      # User detail page (route: /users/show)
+        ├── [id].tsx      # User detail page (route: /users/[id])
+        └── index.tsx     # User top page (route: /users)
 ```
+
+### 3. Dynamic Routes
+
+You can define dynamic routes by wrapping the filename in brackets, like `[id].tsx`.
+The parameter name inside the brackets (e.g., `id`) will be available in `useParams`.
+
+- `src/pages/users/[id].tsx` matches `/users/123`, `/users/abc`, etc.
+- `src/pages/posts/[slug].vue` matches `/posts/my-first-post`.
 
 ### 3. Type-Safe Parameters (DSL)
 
@@ -69,9 +78,9 @@ The Vite plugin detects this and generates type-safe `navigate` functions and `u
 #### Example of Defining Parameters
 
 ```typescript
-// src/pages/users/show.tsx
+// src/pages/users/[id].tsx
 export const params = {
-  userId: 'string', // required
+  // id: 'string', // path parameter is auto defined as required string
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true }, // optional
 };
 ```
@@ -82,6 +91,9 @@ Simply add the plugin to your `vite.config.ts` to watch the `src/pages` director
 
 - `.generated/router.d.ts`: `RouteNames` and `RouteParams` type definitions.
 - `.generated/routes.ts`: A map of route names to their components.
+
+> [!NOTE]
+> The plugin uses an internal cache based on file modification times (`mtime`) to optimize performance and avoid unnecessary regenerations.
 
 ```ts
 // vite.config.ts
@@ -111,10 +123,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
-import { pages, specialPages } from './generated/routes';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
 // Create the router instance
-const router = createRouter(pages, { specialPages });
+const router = createRouter(pages, { specialPages, dynamicRoutes });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -132,19 +144,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 Safely access the parameters of the current page.
 
 ```tsx
-// src/pages/users/show.tsx
+// src/pages/users/[id].tsx
 import { useParams } from '@ciderjs/city-gas/react';
 
 export const params = {
-  userId: 'string',
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
 };
 
-export default function UserShowPage() {
-  const { userId, tab } = useParams<'/users/show'>();
+export default function UserDetail() {
+  // Pass the route name as an argument for strict type inference
+  const { id, tab } = useParams('/users/[id]');
+  
   return (
     <div>
-      <h2>User: {userId}</h2>
+      <h2>User: {id}</h2>
       <p>Tab: {tab ?? 'profile'}</p>
     </div>
   );
@@ -165,7 +178,7 @@ const MyComponent = () => {
     <nav>
       <button onClick={() => navigate('/')}>Home</button>
       {/* Parameters are also type-safe */}
-      <button onClick={() => navigate('/users/show', { userId: '123' })}>
+      <button onClick={() => navigate('/users/[id]', { id: '123', tab: 'settings' })}>
         User 123
       </button>
     </nav>
@@ -186,9 +199,9 @@ Set up the router plugin in your entry point (`main.ts`) and mount the `RouterOu
 import { createRouter } from '@ciderjs/city-gas';
 import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
 import { createApp } from 'vue';
-import { pages, specialPages } from './generated/routes';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-const router = createRouter(pages, { specialPages });
+const router = createRouter(pages, { specialPages, dynamicRoutes });
 createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
 ```
 
@@ -201,10 +214,10 @@ Provides Composables for use with Vue 3's Composition API.
 Safely access the parameters of the current page.
 
 ```vue
-<!-- src/pages/users/show.vue -->
+<!-- src/pages/users/[id].vue -->
 <template>
   <div>
-    <h2>User: {{ userId }}</h2>
+    <h2>User: {{ id }}</h2>
     <p>Tab: {{ tab ?? 'profile' }}</p>
   </div>
 </template>
@@ -212,13 +225,13 @@ Safely access the parameters of the current page.
 <script setup lang="ts">
 import { useParams } from '@ciderjs/city-gas/vue';
 
-const { userId, tab } = useParams<'/users/show'>();
+// Pass the route name as an argument for strict type inference
+const { id, tab } = useParams('/users/[id]');
 </script>
 
 <!-- Use a separate script block to export params -->
 <script lang="ts">
 export const params = {
-  userId: 'string',
   tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
 };
 </script>
@@ -234,7 +247,7 @@ Perform page transitions with type-checking.
   <nav>
     <button @click="() => navigate('/')">Home</button>
     <!-- Parameters are also type-safe -->
-    <button @click="() => navigate('/users/show', { userId: '123' })">
+    <button @click="() => navigate('/users/[id]', { id: '123', tab: 'settings' })">
       User 123
     </button>
   </nav>

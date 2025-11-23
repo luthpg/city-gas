@@ -1,6 +1,6 @@
 import path from 'node:path';
 import type { PluginOption, ResolvedConfig } from 'vite';
-import { generate } from '@/plugin/generator';
+import { generate, removeFile, updateFile } from '@/plugin/generator';
 
 export function cityGasRouter(): PluginOption {
   let config: ResolvedConfig;
@@ -11,6 +11,7 @@ export function cityGasRouter(): PluginOption {
       config = resolvedConfig;
     },
     async buildStart() {
+      // 初回は全スキャンして生成
       await generate(config.root);
     },
     configureServer(server) {
@@ -19,17 +20,17 @@ export function cityGasRouter(): PluginOption {
       server.watcher
         .on('add', async (file) => {
           if (file.startsWith(pagesDir)) {
-            await generate(config.root);
+            await updateFile(file, config.root);
           }
         })
         .on('change', async (file) => {
           if (file.startsWith(pagesDir)) {
-            await generate(config.root);
+            await updateFile(file, config.root);
           }
         })
         .on('unlink', async (file) => {
           if (file.startsWith(pagesDir)) {
-            await generate(config.root);
+            await removeFile(file, config.root);
           }
         });
     },
