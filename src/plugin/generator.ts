@@ -17,7 +17,7 @@ const contentCache = {
 };
 
 function getPathParams(routeName: string): string[] {
-  const matches = routeName.match(/\[([^\]]+)\]/g);
+  const matches = routeName.match(/\[([^\][]+)\]/g);
   if (!matches) return [];
   return matches.map((m) => m.slice(1, -1));
 }

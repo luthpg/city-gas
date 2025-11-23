@@ -264,7 +264,7 @@ export function createRouter<
       const queryParams = { ...nextParams };
 
       if (pagePath.includes('[')) {
-        pagePath = pagePath.replace(/\[([^\]]+)\]/g, (_, paramName) => {
+        pagePath = pagePath.replace(/\[([^\][]+)\]/g, (_, paramName) => {
           if (paramName in queryParams) {
             const value = queryParams[paramName];
             delete queryParams[paramName];
