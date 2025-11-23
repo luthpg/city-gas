@@ -1,6 +1,6 @@
 {
   "name": "@ciderjs/city-gas",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Router for Single Page App on Google Apps Script",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
