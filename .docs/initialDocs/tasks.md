@@ -46,13 +46,13 @@
 - [x] **DSL → TS 型変換**: `dslToTs` 再帰関数による型定義文字列の生成
 - [x] **型ファイル生成**: `router.d.ts` と `routes.ts` を生成・書き出し
 - [x] **HMR 対応**: ファイル変更を監視し、型ファイルを即時再生成
-- [ ] **動的パスパラメータ**: `[param].tsx` などのパスパラメータを解析し、型生成に統合
+- [x] **動的パスパラメータ**: `[param].tsx` などのパスパラメータを解析し、型生成に統合
 - [x] **競合解決**: `index` ファイル（例: `test/index.tsx`）が通常ファイル（例: `test.tsx`）より優先されるよう `generator.ts` を修正。
 - [x] **競合解決**: 競合を検出し、コンソールに `warn` を出力する。
-- [ ] **HMR キャッシュ戦略 (ファイルキャッシュ)**: プラグインのインメモリ `Map` に `Map<filePath, { mtimeMs, params, routeInfo }>` を保持する。
-- [ ] **HMR キャッシュ戦略 (I/O削減)**: `fs.statSync` で `mtimeMs` を比較し、変更があったファイルのみ `fs.readFileSync` と `extractParams` を実行する。
-- [ ] **HMR キャッシュ戦略 (unlink対応)**: `fast-glob` の結果とキャッシュを比較し、削除されたファイルをキャッシュから除去する。
-- [ ] **HMR キャッシュ戦略 (コンテンツキャッシュ)**: 生成された `router.d.ts` と `routes.ts` の内容（文字列）をキャッシュし、変更がない場合は `fs.writeFileSync` をスキップする。
+- [x] **HMR キャッシュ戦略 (ファイルキャッシュ)**: プラグインのインメモリ `Map` に `Map<filePath, { mtimeMs, params, routeInfo }>` を保持する。
+- [x] **HMR キャッシュ戦略 (I/O削減)**: `fs.statSync` で `mtimeMs` を比較し、変更があったファイルのみ `fs.readFileSync` と `extractParams` を実行する。
+- [x] **HMR キャッシュ戦略 (unlink対応)**: `fast-glob` の結果とキャッシュを比較し、削除されたファイルをキャッシュから除去する。
+- [x] **HMR キャッシュ戦略 (コンテンツキャッシュ)**: 生成された `router.d.ts` と `routes.ts` の内容（文字列）をキャッシュし、変更がない場合は `fs.writeFileSync` をスキップする。
 
 ---
 
@@ -64,7 +64,7 @@
 - [x] **単体テスト**: ナビゲーションガード
 - [ ] **E2E テスト**: GAS/ブラウザ環境での実動作確認
 - [x] **単体テスト (Vite Plugin)**: ルート競合解決（`index` 優先）のテストケースを追加。
-- [ ] **単体テスト (Vite Plugin)**: キャッシュ戦略（`add`, `change`, `unlink`) 時のI/O動作（`stat`, `read`, `write` の呼び出し回数）をモックを使用してテスト。
+- [x] **単体テスト (Vite Plugin)**: キャッシュ戦略（`add`, `change`, `unlink`) 時のI/O動作（`stat`, `read`, `write` の呼び出し回数）をモックを使用してテスト。
 
 ---
 
@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | v0.1.0 | Router Core + Environment Adapter + Vite Plugin (DSL → 型生成) | 完了 |
 | v0.2.0 | React/Vue サポート、Hooks と Composables の実装、ネストされたルート | 完了 |
-| v0.3.0 | 動的ルート `[id].tsx` 対応、ナビゲーションガード | 未着手 |
+| v0.3.0 | 動的ルート `[id].tsx` 対応、ナビゲーションガード | 完了 |
 | v0.4.0 | Zod スキーマ対応 | 未着手 |
 | v1.0.0 | 安定版リリース | 未着手 |
 
