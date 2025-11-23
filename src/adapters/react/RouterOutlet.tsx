@@ -40,7 +40,7 @@ export function RouterOutlet<
   const pathParts = name.split('/').filter(Boolean);
   const parentPathParts = isIndex ? pathParts : pathParts.slice(0, -1);
 
-  let LayoutComponent: React.ComponentType<any> | null = null;
+  let componentToRender = <PageComponent {...params} />;
 
   for (let i = parentPathParts.length; i > 0; i--) {
     const potentialLayoutPath = [
@@ -48,20 +48,16 @@ export function RouterOutlet<
       '_layout',
     ].join('/');
     if (specialPages[potentialLayoutPath]) {
-      LayoutComponent = specialPages[
+      const LayoutComponent = specialPages[
         potentialLayoutPath
       ] as React.ComponentType<any>;
-      break;
+      componentToRender = (
+        <LayoutComponent>{componentToRender}</LayoutComponent>
+      );
     }
   }
 
   const RootComponent = specialPages._root as React.ComponentType<any>;
-
-  let componentToRender = <PageComponent {...params} />;
-
-  if (LayoutComponent) {
-    componentToRender = <LayoutComponent>{componentToRender}</LayoutComponent>;
-  }
 
   if (RootComponent) {
     componentToRender = <RootComponent>{componentToRender}</RootComponent>;
