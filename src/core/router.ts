@@ -213,7 +213,8 @@ export function createRouter<
       } else {
         // バリデーション失敗時は 404 へ飛ばす (または専用のエラーページでも可)
         console.warn(
-          `[city-gas] Validation failed for route "${name}". Redirecting to 404.`,
+          `[city-gas] Validation failed for route "%s". Redirecting to 404.`,
+          name,
           result.error,
         );
         name = '_404';
