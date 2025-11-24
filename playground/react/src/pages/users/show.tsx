@@ -1,8 +1,9 @@
 import { useParams } from '@ciderjs/city-gas/react';
+import { z } from 'zod';
 
-export const params = {
-  tab: 'string',
-};
+export const schema = z.object({
+  tab: z.string(),
+});
 
 export default function UserShowPage() {
   const { tab } = useParams('/users/show');

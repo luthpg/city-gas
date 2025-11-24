@@ -4,10 +4,11 @@ import path from 'node:path';
 import { parse } from '@vue/compiler-sfc';
 import fg from 'fast-glob';
 import ts from 'typescript';
-import { type DSL, dslToTs } from '@/plugin/dslToTs';
+import { zodToTs } from '@/plugin/zodToTs';
 
 interface FileCacheEntry {
-  params: Record<string, any> | undefined;
+  schemaType: string; // TSの型定義文字列 (例: "{ tab?: string | undefined }")
+  hasSchema: boolean; // export const schema が存在するか
   mtimeMs: number;
 }
 
@@ -17,108 +18,88 @@ const contentCache = {
   routes: '',
 };
 
+/**
+ * ファイルパスからパスパラメータを抽出
+ * 例: "users/[userId].tsx" -> ["userId"]
+ */
 function getPathParams(routeName: string): string[] {
   const matches = routeName.match(/\[([^\][]+)\]/g);
   if (!matches) return [];
   return matches.map((m) => m.slice(1, -1));
 }
 
-function extractParamsFromTs(
+/**
+ * TS/TSX コンテンツから export const schema を解析する
+ */
+function extractSchemaFromTs(
   filePath: string,
   content: string,
-): Record<string, any> | undefined {
+): { schemaType: string; hasSchema: boolean } {
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
     ts.ScriptTarget.Latest,
     true,
   );
-  let paramsNode: ts.ObjectLiteralExpression | undefined;
 
-  function findParams(node: ts.Node) {
+  let schemaNode: ts.Expression | undefined;
+
+  function findSchema(node: ts.Node) {
     if (
       ts.isVariableStatement(node) &&
       node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
     ) {
       for (const decl of node.declarationList.declarations) {
-        if (
-          decl.name.getText(sourceFile) === 'params' &&
-          decl.initializer &&
-          ts.isObjectLiteralExpression(decl.initializer)
-        ) {
-          paramsNode = decl.initializer;
+        if (decl.name.getText(sourceFile) === 'schema' && decl.initializer) {
+          schemaNode = decl.initializer;
           break;
         }
       }
     }
-    if (!paramsNode) {
-      ts.forEachChild(node, findParams);
+    if (!schemaNode) {
+      ts.forEachChild(node, findSchema);
     }
   }
 
-  findParams(sourceFile);
+  findSchema(sourceFile);
 
-  if (paramsNode) {
-    return parseObjectLiteral(paramsNode, sourceFile);
+  if (schemaNode) {
+    // zodToTs を使って型文字列に変換
+    const typeStr = zodToTs(schemaNode, sourceFile);
+    return { schemaType: typeStr, hasSchema: true };
   }
-  return undefined;
+
+  return { schemaType: '{}', hasSchema: false };
 }
 
-function parseObjectLiteral(
-  node: ts.ObjectLiteralExpression,
-  sourceFile: ts.SourceFile,
-): Record<string, any> {
-  const result: Record<string, any> = {};
-
-  for (const prop of node.properties) {
-    if (ts.isPropertyAssignment(prop)) {
-      const key = prop.name.getText(sourceFile);
-      const value = parseValue(prop.initializer, sourceFile);
-      result[key] = value;
-    }
-  }
-
-  return result;
-}
-
-function parseValue(node: ts.Expression, sourceFile: ts.SourceFile): any {
-  if (ts.isStringLiteral(node)) {
-    return node.text;
-  }
-  if (ts.isNumericLiteral(node)) {
-    return Number(node.text);
-  }
-  if (node.kind === ts.SyntaxKind.TrueKeyword) {
-    return true;
-  }
-  if (node.kind === ts.SyntaxKind.FalseKeyword) {
-    return false;
-  }
-  if (ts.isObjectLiteralExpression(node)) {
-    return parseObjectLiteral(node, sourceFile);
-  }
-  if (ts.isArrayLiteralExpression(node)) {
-    return node.elements.map((el) => parseValue(el, sourceFile));
-  }
-  // Fallback: 文字列として返す
-  return node.getText(sourceFile);
-}
-
-function extractParams(filePath: string): Record<string, any> | undefined {
+/**
+ * ファイルからスキーマ情報を抽出 (.vue 対応)
+ */
+function extractSchema(filePath: string): {
+  schemaType: string;
+  hasSchema: boolean;
+} {
   const content = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.vue')) {
     const { descriptor } = parse(content);
-    const script =
+    // <script> または <script setup> を探す
+    // 注: setup内で export const schema はできないため、
+    // Vueの場合は通常の <script> ブロックで export const schema を書く想定
+    const scriptContent =
       descriptor.script?.content ?? descriptor.scriptSetup?.content;
-    if (script) {
-      return extractParamsFromTs(filePath, script);
+
+    if (scriptContent) {
+      return extractSchemaFromTs(filePath, scriptContent);
     }
-    return undefined;
-  } else {
-    return extractParamsFromTs(filePath, content);
+    return { schemaType: '{}', hasSchema: false };
   }
+
+  return extractSchemaFromTs(filePath, content);
 }
 
+/**
+ * ファイルパスからルート情報を生成
+ */
 function pathToRouteInfo(
   pagesDir: string,
   filePath: string,
@@ -136,27 +117,34 @@ function pathToRouteInfo(
   return { name: `/${withoutExt}`, isIndex: false };
 }
 
-function generateTypeContent(
-  routes: { name: string; isIndex: boolean; params?: Record<string, DSL> }[],
-) {
+/**
+ * TypeScript型定義 (router.d.ts) の生成
+ */
+function generateTypeContent(routes: { name: string; schemaType: string }[]) {
   const routeNames =
     routes.map((r) => JSON.stringify(r.name)).join(' | ') || 'never';
 
   const routeParams = routes
     .map((r) => {
       const pathParams = getPathParams(r.name);
-      const combinedParams = { ...(r.params || {}) };
 
-      for (const p of pathParams) {
-        combinedParams[p] = 'string';
+      // クエリパラメータの型 (ユーザー定義)
+      let finalType = r.schemaType;
+
+      // パスパラメータがある場合、交差型で結合する
+      if (pathParams.length > 0) {
+        // パスパラメータは常に string (URLの一部のため)
+        const pathParamsType = `{ ${pathParams.map((p) => `${p}: string`).join('; ')} }`;
+
+        // ユーザー定義が {} (空) ならパスパラメータのみ、それ以外なら & で結合
+        if (finalType === '{}') {
+          finalType = pathParamsType;
+        } else {
+          finalType = `(${finalType}) & ${pathParamsType}`;
+        }
       }
 
-      if (Object.keys(combinedParams).length === 0) {
-        return `  ${JSON.stringify(r.name)}: {};`;
-      }
-
-      const paramsType = dslToTs({ type: 'object', shape: combinedParams });
-      return `  ${JSON.stringify(r.name)}: ${paramsType};`;
+      return `  ${JSON.stringify(r.name)}: ${finalType};`;
     })
     .join('\n');
 
@@ -180,47 +168,97 @@ declare module '@ciderjs/city-gas' {
 `;
 }
 
-function generateImportName(filePath: string): string {
-  const hash = crypto.createHash('md5').update(filePath).digest('hex');
-  // Ensure it starts with a letter to be a valid identifier
-  return `P_${hash.slice(0, 8)}`;
+function generateHash(filePath: string): string {
+  return crypto.createHash('md5').update(filePath).digest('hex').slice(0, 8);
 }
 
+/**
+ * ランタイムルートマップ (routes.ts) の生成
+ */
 function generateRoutesContent(
   rootDir: string,
-  routes: { path: string; name: string; isIndex: boolean }[],
+  routes: {
+    path: string;
+    name: string;
+    isIndex: boolean;
+    hasSchema: boolean;
+  }[],
   specialRoutes: { path: string; name: string }[],
 ) {
-  const allRoutes = [...routes, ...specialRoutes];
-  const imports = allRoutes
-    .map((r) => {
-      const importPath = path
-        .relative(
-          path.dirname(path.resolve(rootDir, 'src/generated/routes.ts')),
-          r.path,
-        )
-        .replace(/\\/g, '/');
-      const importName = generateImportName(r.path);
-      return `import ${importName} from '${importPath}';`;
-    })
-    .join('\n');
+  const routesDir = path.dirname(
+    path.resolve(rootDir, 'src/generated/routes.ts'),
+  );
 
+  // インポート文の生成
+  const imports: string[] = [
+    `import { z } from 'zod';`, // Zod必須
+  ];
+
+  routes.forEach((r) => {
+    const importPath = path.relative(routesDir, r.path).replace(/\\/g, '/');
+    const hash = generateHash(r.path);
+
+    // コンポーネントのインポート
+    imports.push(`import P_${hash} from '${importPath}';`);
+
+    // スキーマのインポート (存在する場合のみ)
+    if (r.hasSchema) {
+      imports.push(`import { schema as S_${hash} } from '${importPath}';`);
+    }
+  });
+
+  specialRoutes.forEach((r) => {
+    const importPath = path.relative(routesDir, r.path).replace(/\\/g, '/');
+    const hash = generateHash(r.path);
+    imports.push(`import P_${hash} from '${importPath}';`);
+  });
+
+  // Pagesオブジェクトの生成
   const pages = routes
     .map((r) => {
-      const importName = generateImportName(r.path);
-      return `  ${JSON.stringify(r.name)}: { component: ${importName}, isIndex: ${
-        r.isIndex
-      } },`;
+      const hash = generateHash(r.path);
+      const pathParams = getPathParams(r.name);
+
+      let schemaExpression = 'z.object({})';
+      if (r.hasSchema) {
+        schemaExpression = `S_${hash}`;
+      }
+
+      // パスパラメータのZod定義を生成
+      if (pathParams.length > 0) {
+        // 例: .and(z.object({ userId: z.string() }))
+        const pathSchemaObj = pathParams
+          .map((p) => `${p}: z.string()`)
+          .join(', ');
+        // 既存スキーマがz.object以外の可能性(z.unionなど)も考慮し、.and(Intersection)を使用
+        // ※ ユーザー定義がない場合は z.object({}) なので .extend() でも良いが、
+        //    ユーザー定義がある場合は .and() が安全
+        schemaExpression = `(${schemaExpression}).and(z.object({ ${pathSchemaObj} }))`;
+      } else if (!r.hasSchema) {
+        // スキーマもパスパラメータもない場合は undefined (最適化)
+        // ただしRouter側でundefinedチェックが必要。ここでは一貫性のため z.object({}) を渡すか、
+        // もしくは router.ts 側で fallback するなら undefined にする。
+        // -> 今回は生成コード側で明示的に渡す方針にする
+        schemaExpression = `z.object({})`;
+      }
+
+      return `  ${JSON.stringify(r.name)}: { 
+    component: P_${hash}, 
+    isIndex: ${r.isIndex},
+    schema: ${schemaExpression}
+  },`;
     })
     .join('\n');
 
+  // SpecialPagesオブジェクトの生成
   const specialPages = specialRoutes
     .map((r) => {
-      const importName = generateImportName(r.path);
-      return `  ${JSON.stringify(r.name)}: ${importName},`;
+      const hash = generateHash(r.path);
+      return `  ${JSON.stringify(r.name)}: P_${hash},`;
     })
     .join('\n');
 
+  // DynamicRoutes配列の生成 (Router Coreでのマッチング用)
   const dynamicRoutesData = routes
     .filter((r) => r.name.includes('['))
     .map((r) => {
@@ -247,7 +285,7 @@ function generateRoutesContent(
 /* eslint-disable */
 /* biome-ignore: auto generated file */
 
-${imports}
+${imports.join('\n')}
 
 export const pages = {
 ${pages}
@@ -264,8 +302,7 @@ export const dynamicRoutes = [
 }
 
 /**
- * キャッシュ内の情報を使ってファイルを生成する
- * I/O は発生させない (書き込みのみ、それも変更がある場合のみ)
+ * ファイル書き出し処理
  */
 function flushFiles(rootDir: string) {
   const pagesDir = path.resolve(rootDir, 'src/pages');
@@ -284,7 +321,7 @@ function flushFiles(rootDir: string) {
     }
   });
 
-  // ルートの重複解決 (Map を使用)
+  // ルート重複解決
   const routeMap = new Map<string, { path: string; isIndex: boolean }>();
 
   for (const file of pageFiles) {
@@ -292,32 +329,28 @@ function flushFiles(rootDir: string) {
     const existing = routeMap.get(name);
 
     if (!existing) {
-      // 競合なし、そのまま追加
       routeMap.set(name, { path: file, isIndex });
     } else {
-      // 競合発生
+      // 競合解決ロジック (index優先)
       if (existing.isIndex && !isIndex) {
-        // 既存が index (優先)、新しいファイル (非 index) を無視
         console.warn(
-          `[city-gas] Warning: Route conflict detected. ${file} is ignored because ${existing.path} takes precedence (route name: "${name}").`,
+          `[city-gas] Warning: Route conflict. ${file} ignored in favor of ${existing.path} ("${name}").`,
         );
       } else if (!existing.isIndex && isIndex) {
-        // 新しいファイルが index (優先)、既存 (非 index) を上書き
         console.warn(
-          `[city-gas] Warning: Route conflict detected. ${existing.path} is ignored because ${file} takes precedence (route name: "${name}").`,
+          `[city-gas] Warning: Route conflict. ${existing.path} ignored in favor of ${file} ("${name}").`,
         );
         routeMap.set(name, { path: file, isIndex });
       } else {
-        // 曖昧な競合
         console.warn(
-          `[city-gas] Warning: Ambiguous route conflict for "${name}". Using ${file} over ${existing.path}.`,
+          `[city-gas] Warning: Ambiguous conflict for "${name}". Using ${file}.`,
         );
         routeMap.set(name, { path: file, isIndex });
       }
     }
   }
 
-  // マップから最終的なルートリストを作成
+  // 最終的なルートリスト
   const routes = Array.from(routeMap.entries())
     .map(([name, info]) => {
       const entry = fileCache.get(info.path);
@@ -325,7 +358,8 @@ function flushFiles(rootDir: string) {
         path: info.path,
         name,
         isIndex: info.isIndex,
-        params: entry?.params,
+        schemaType: entry?.schemaType || '{}',
+        hasSchema: entry?.hasSchema || false,
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
@@ -335,17 +369,12 @@ function flushFiles(rootDir: string) {
       const relativePath = path.relative(pagesDir, file);
       const posixPath = relativePath.replace(/\\/g, '/');
       const name = posixPath.replace(/\.[^/.]+$/, '');
-      return {
-        path: file,
-        name: name,
-      };
+      return { path: file, name };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
 
-  // Generate types
+  // 1. router.d.ts 生成
   const typeOutputPath = path.resolve(rootDir, 'src/generated/router.d.ts');
-  const routesOutputPath = path.resolve(rootDir, 'src/generated/routes.ts');
-
   const typeContent = generateTypeContent(routes);
   if (contentCache.dts !== typeContent) {
     fs.mkdirSync(path.dirname(typeOutputPath), { recursive: true });
@@ -354,7 +383,8 @@ function flushFiles(rootDir: string) {
     console.log(`[city-gas] Generated types in ${typeOutputPath}`);
   }
 
-  // 2. routes.ts
+  // 2. routes.ts 生成
+  const routesOutputPath = path.resolve(rootDir, 'src/generated/routes.ts');
   const routesContent = generateRoutesContent(rootDir, routes, specialRoutes);
   if (contentCache.routes !== routesContent) {
     fs.mkdirSync(path.dirname(routesOutputPath), { recursive: true });
@@ -365,42 +395,37 @@ function flushFiles(rootDir: string) {
 }
 
 /**
- * ファイルが変更された時に呼ばれる
- * キャッシュを更新し、ファイルを再生成する
+ * ファイル更新時
  */
 export async function updateFile(filePath: string, rootDir: string) {
-  // Windowsパスの正規化
   const normalizedPath = filePath.replace(/\\/g, '/');
 
   try {
     const stat = fs.statSync(filePath);
     const mtimeMs = stat.mtimeMs;
 
-    // 更新時刻が変わっていないなら何もしない (Viteが検知しても中身が変わらない場合があるため)
     const cached = fileCache.get(normalizedPath);
     if (cached && cached.mtimeMs === mtimeMs) {
       return;
     }
 
-    // params抽出
-    const params = extractParams(filePath);
+    // スキーマ抽出 (Zod解析)
+    const { schemaType, hasSchema } = extractSchema(filePath);
 
-    // キャッシュ更新
     fileCache.set(normalizedPath, {
-      params,
+      schemaType,
+      hasSchema,
       mtimeMs,
     });
 
-    // 再生成
     flushFiles(rootDir);
   } catch (e) {
-    // ファイルが削除されている場合など
     console.error(`[city-gas] Error processing ${filePath}:`, e);
   }
 }
 
 /**
- * ファイルが削除された時に呼ばれる
+ * ファイル削除時
  */
 export async function removeFile(filePath: string, rootDir: string) {
   const normalizedPath = filePath.replace(/\\/g, '/');
@@ -411,8 +436,7 @@ export async function removeFile(filePath: string, rootDir: string) {
 }
 
 /**
- * 初回起動時 (またはフルスキャン時) に呼ばれる
- * 全ファイルを読み込んでキャッシュを構築し、生成する
+ * 初期化 (フルスキャン)
  */
 export async function generate(rootDir: string) {
   const pagesDir = path.resolve(rootDir, 'src/pages');
@@ -420,7 +444,6 @@ export async function generate(rootDir: string) {
     path.join(pagesDir, '**/*.{tsx,vue}').replace(/\\/g, '/'),
   );
 
-  // キャッシュをリセット (念のため)
   fileCache.clear();
   contentCache.dts = '';
   contentCache.routes = '';
@@ -428,9 +451,10 @@ export async function generate(rootDir: string) {
   for (const file of allFiles) {
     try {
       const stat = fs.statSync(file);
-      const params = extractParams(file);
+      const { schemaType, hasSchema } = extractSchema(file);
       fileCache.set(file, {
-        params,
+        schemaType,
+        hasSchema,
         mtimeMs: stat.mtimeMs,
       });
     } catch (e) {
