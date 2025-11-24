@@ -3,31 +3,56 @@
 /* eslint-disable */
 /* biome-ignore: auto generated file */
 
-import P_9f60edf7 from '../pages/_404.tsx';
-import P_04059d0a from '../pages/_root.tsx';
-import P_fffd9681 from '../pages/about.tsx';
-import P_461da086 from '../pages/config/_layout.tsx';
-import P_bd71fe9e from '../pages/config/index.tsx';
-import P_3cd6ec19 from '../pages/index.tsx';
-import P_9c055ae7 from '../pages/users/_layout.tsx';
-import P_35811af1 from '../pages/users/[userId].tsx';
-import P_fb177fbf from '../pages/users/index.tsx';
-import P_1b714624 from '../pages/users/show.tsx';
+import { z } from 'zod';
+import P_a66fbd4a from '../pages/_404.tsx';
+import P_f110edaf from '../pages/_root.tsx';
+import P_4d0c3efd from '../pages/about.tsx';
+import P_993db380 from '../pages/config/_layout.tsx';
+import P_dffc4b16 from '../pages/config/index.tsx';
+import P_c2a670da from '../pages/index.tsx';
+import P_7b0290ed from '../pages/users/_layout.tsx';
+import P_816e1dc8, { schema as S_816e1dc8 } from '../pages/users/[userId].tsx';
+import P_404e6b2d from '../pages/users/index.tsx';
+import P_8a6fdeec, { schema as S_8a6fdeec } from '../pages/users/show.tsx';
 
 export const pages = {
-  '/about': { component: P_fffd9681, isIndex: false },
-  '/config': { component: P_bd71fe9e, isIndex: true },
-  '/': { component: P_3cd6ec19, isIndex: true },
-  '/users/[userId]': { component: P_35811af1, isIndex: false },
-  '/users': { component: P_fb177fbf, isIndex: true },
-  '/users/show': { component: P_1b714624, isIndex: false },
+  '/about': {
+    component: P_4d0c3efd,
+    isIndex: false,
+    schema: z.object({}),
+  },
+  '/config': {
+    component: P_dffc4b16,
+    isIndex: true,
+    schema: z.object({}),
+  },
+  '/': {
+    component: P_c2a670da,
+    isIndex: true,
+    schema: z.object({}),
+  },
+  '/users/[userId]': {
+    component: P_816e1dc8,
+    isIndex: false,
+    schema: S_816e1dc8.and(z.object({ userId: z.string() })),
+  },
+  '/users': {
+    component: P_404e6b2d,
+    isIndex: true,
+    schema: z.object({}),
+  },
+  '/users/show': {
+    component: P_8a6fdeec,
+    isIndex: false,
+    schema: S_8a6fdeec,
+  },
 };
 
 export const specialPages = {
-  _404: P_9f60edf7,
-  _root: P_04059d0a,
-  'config/_layout': P_461da086,
-  'users/_layout': P_9c055ae7,
+  _404: P_a66fbd4a,
+  _root: P_f110edaf,
+  'config/_layout': P_993db380,
+  'users/_layout': P_7b0290ed,
 };
 
 export const dynamicRoutes = [

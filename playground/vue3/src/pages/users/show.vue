@@ -12,7 +12,8 @@ const ref = useParams('/users/show');
 </script>
 
 <script lang="ts">
-export const params = {
-  tab: 'string',
-};
+import { z } from 'zod';
+export const schema = z.object({
+  tab: z.string(),
+});
 </script>

@@ -1,6 +1,6 @@
 {
   "name": "@ciderjs/city-gas",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Router for Single Page App on Google Apps Script",
   "main": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -70,13 +70,15 @@
     "vite": "^7.1.12",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^4.0.6",
-    "vue": "^3.5.22"
+    "vue": "^3.5.22",
+    "zod": "^4.1.12"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18",
     "vite": ">=7",
-    "vue": ">=3"
+    "vue": ">=3",
+    "zod": ">=4"
   },
   "peerDependenciesMeta": {
     "react-dom": {

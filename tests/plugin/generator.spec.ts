@@ -21,7 +21,7 @@ describe('Plugin Generator', () => {
 
     fs.writeFileSync(
       path.join(pagesDir, 'index.tsx'),
-      `export const params = { id: { type: 'string' } };`,
+      `export const schema = z.object({ id: z.string() });`,
     );
     fs.writeFileSync(path.join(pagesDir, 'about.tsx'), '');
     fs.mkdirSync(path.join(pagesDir, 'users'), { recursive: true });
@@ -61,7 +61,7 @@ describe('Plugin Generator', () => {
     // src/pages/users/[userId].tsx
     fs.writeFileSync(
       path.join(pagesDir, 'users', '[userId].tsx'),
-      `export const params = { extra: 'string?' };`,
+      `export const schema = z.object({ extra: z.string().optional() });`,
     );
 
     await generate(rootDir);
@@ -74,8 +74,8 @@ describe('Plugin Generator', () => {
     // Should contain route name with brackets
     expect(typeContent).toContain('"/users/[userId]"');
     // Should merge path param (userId: string) and dsl param (extra?: string)
-    expect(typeContent).toContain('userId: string;');
-    expect(typeContent).toContain('extra?: string;');
+    expect(typeContent).toContain('userId: string');
+    expect(typeContent).toContain('extra?: string');
 
     // Check routes.ts
     const routesContent = fs.readFileSync(
@@ -167,13 +167,13 @@ describe('Plugin Generator', () => {
     );
     expect(typeContent).toContain('export type RouteNames = "/users";');
 
-    const expectedWarning = `[city-gas] Warning: Route conflict detected. ${userFilePath.replaceAll(
+    const expectedWarning = `[city-gas] Warning: Route conflict. ${userFilePath.replaceAll(
       '\\',
       '/',
-    )} is ignored because ${userIndexFilePath.replaceAll(
+    )} ignored in favor of ${userIndexFilePath.replaceAll(
       '\\',
       '/',
-    )} takes precedence (route name: "/users").`;
+    )} ("/users").`;
 
     // Check that a warning was logged
     expect(warnSpy).toHaveBeenCalledWith(
@@ -192,7 +192,7 @@ describe('Plugin Generator', () => {
       // Initial generation to populate cache
       fs.writeFileSync(
         path.join(pagesDir, 'index.tsx'),
-        `export const params = {};`,
+        `export const schema = z.object({});`,
       );
       await generate(rootDir);
     });

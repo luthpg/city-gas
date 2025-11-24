@@ -8,7 +8,7 @@
 ## 🌐 概要
 
 `city-gas` は **Google Apps Script (GAS)** と **ブラウザ環境**の両方で動作する、React / Vue 3 向けの型安全なルーターです。
-**ファイルベースルーティング**、**柔軟な params DSL**、そして **Vite プラグインによる型自動生成**を特徴としています。
+**ファイルベースルーティング**、**Zod対応のパラメータ設定**、そして **Vite プラグインによる型自動生成**を特徴としています。
 
 ---
 
@@ -65,23 +65,23 @@ src/
 - `src/pages/users/[id].tsx` は `/users/123`, `/users/abc` などにマッチします。
 - `src/pages/posts/[slug].vue` は `/posts/my-first-post` などにマッチします。
 
-### 3. 型安全なパラメータ (DSL)
+### 3. Zod対応のパラメータ
 
-各ページでは `params` 定数を `export` することで、そのページが受け取るパラメータの型を定義できます。
-
-- サポートする型: `string`, `number`, `boolean`, `enum`, `array`, `object`
-- `?` を付けることでオプショナルな型を表現できます (例: `string?`)
+各ページでは `schema` 定数を `export` することで、そのページが受け取るパラメータの型・バリデーションを定義できます。
 
 Viteプラグインはこれを検出し、型安全な `navigate` 関数や `useParams` フック/Composableを生成します。
+
+- ランタイムでルーティングが実行される際、 `schema` によるバリデーションチェックを実行します。バリデーションエラーになる場合は、 `404` エラーを表示します。
 
 #### パラメータ定義の例
 
 ```typescript
 // src/pages/users/[id].tsx
-export const params = {
-  // id: 'string', // パスパラメータは自動的に必須の「string」型で定義されるので記載不要
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true }, // オプショナル
-};
+import { z } from 'zod';
+export const schema = z.object({
+  // id: z.string(), // パスパラメータは自動的に必須の「string」型で定義されるので記載不要
+  tab: z.enum(['profile', 'settings']).optional(); // オプショナル
+});
 ```
 
 ### 4. Vite プラグインによる型生成
@@ -145,10 +145,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 ```tsx
 // src/pages/users/[id].tsx
 import { useParams } from '@ciderjs/city-gas/react';
+import { z } from 'zod';
 
-export const params = {
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
-};
+export const schema = z.object({
+  tab: z.enum(['profile', 'settings'). optional(),
+});
 
 export default function UserDetail() {
   // ルート名を引数として渡すことで、厳密な型推論が可能になります
@@ -230,9 +231,10 @@ const { id, tab } = useParams('/users/[id]');
 
 <!-- params のエクスポート用に別の script タグを用意 -->
 <script lang="ts">
-export const params = {
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
-};
+import { z } from 'zod';
+export const schema = z.object({
+  tab: z.enum(['profile', 'settings']). optional(),
+});
 </script>
 ```
 

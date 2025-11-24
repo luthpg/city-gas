@@ -8,7 +8,7 @@
 ## 🌐 Overview
 
 `city-gas` is a type-safe router for React and Vue 3 applications that works both in **Google Apps Script (GAS)** and **browser environments**.
-It features **file-based routing**, a **flexible params DSL**, and a **Vite plugin** that auto-generates TypeScript types for safe navigation.
+It features **file-based routing**, a **parameter and validation configuration with Zod**, and a **Vite plugin** that auto-generates TypeScript types for safe navigation.
 
 ---
 
@@ -66,22 +66,22 @@ The parameter name inside the brackets (e.g., `id`) will be available in `usePar
 - `src/pages/users/[id].tsx` matches `/users/123`, `/users/abc`, etc.
 - `src/pages/posts/[slug].vue` matches `/posts/my-first-post`.
 
-### 3. Type-Safe Parameters (DSL)
+### 3. Type-Safe Parameters (Zod)
 
-In each page, you can define the types of parameters it accepts by exporting a `params` constant.
-
-- Supported types: `string`, `number`, `boolean`, `enum`, `array`, `object`
-- Use `?` to make a type optional (e.g., `string?`)
+In each page, you can define the types of parameters it accepts by exporting a `schema` constant.
 
 The Vite plugin detects this and generates type-safe `navigate` functions and `useParams` hooks/composables.
+
+- Router validates with schema in runtime. If it throws some errors, router returns `404` error page.
 
 #### Example of Defining Parameters
 
 ```typescript
 // src/pages/users/[id].tsx
+import { z } from 'zod';
 export const params = {
-  // id: 'string', // path parameter is auto defined as required string
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true }, // optional
+  // id: z.string(), // path parameter is auto defined as required string
+  tab: z.enum(['profile', 'settings']).optional(), // optional
 };
 ```
 
@@ -146,10 +146,11 @@ Safely access the parameters of the current page.
 ```tsx
 // src/pages/users/[id].tsx
 import { useParams } from '@ciderjs/city-gas/react';
+import { z } from 'zod';
 
-export const params = {
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
-};
+export const schema = z.object({
+  tab: z.enum(['profile', 'settings']).optional(),
+});
 
 export default function UserDetail() {
   // Pass the route name as an argument for strict type inference
@@ -231,8 +232,9 @@ const { id, tab } = useParams('/users/[id]');
 
 <!-- Use a separate script block to export params -->
 <script lang="ts">
-export const params = {
-  tab: { type: 'enum', values: ['profile', 'settings'], optional: true },
+import { z } from 'zod';
+export const schema = {
+  tab: z.enum(['profile', 'settings']).optional(),
 };
 </script>
 ```

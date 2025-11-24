@@ -1,5 +1,8 @@
+import { type ZodType, z } from 'zod';
 import { getAdapter } from '@/env';
 import type { Register } from '@/index';
+
+// --- Types ---
 
 type GetRouteNames<T> = T extends { RouteNames: infer R } ? R : string;
 type GetRouteParams<T, R extends string> = T extends { RouteParams: infer P }
@@ -42,6 +45,16 @@ export interface DynamicRoute {
   paramNames: string[];
 }
 
+/**
+ * Generatorが出力するページ情報の型定義
+ * schemaプロパティを受け取れるように拡張
+ */
+export interface PageInfo<PageComponent> {
+  component: PageComponent;
+  isIndex: boolean;
+  schema?: ZodType;
+}
+
 export interface Router<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
@@ -60,17 +73,19 @@ export interface Router<
   getCurrentRoute: () => Route<RouteNames, RouteParams>;
   beforeEach: (guard: NavigationGuard<RouteNames, RouteParams>) => () => void;
   isReady: () => boolean;
-  pages: Record<RouteNames, { component: PageComponent; isIndex: boolean }>;
+  pages: Record<RouteNames, PageInfo<PageComponent>>;
   specialPages: Record<string, PageComponent>;
   dynamicRoutes: DynamicRoute[];
 }
+
+// --- Utils ---
 
 export function parseLocation<
   RouteNames extends string = RegisteredRouteNames,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
 >(location: string): { name: string; params: any } {
   const search = new URLSearchParams(location);
-  let name = search.get('page') as string; // RouteNames may not cover all path variations initially
+  let name = search.get('page') as string;
   if (name === '/index') {
     name = '/';
   }
@@ -79,24 +94,24 @@ export function parseLocation<
   search.forEach((value, key) => {
     if (key === 'page') return;
 
-    // 1. 配列形式のパラメータ (e.g. ?tags=a&tags=b)
+    // 1. 配列形式 (e.g. ?tags=a&tags=b)
     const allValues = search.getAll(key);
     if (allValues.length > 1) {
       params[key] = allValues;
       return;
     }
 
-    // 2. JSON オブジェクト形式のパラメータ
+    // 2. JSON オブジェクト形式
     if (value.startsWith('{') && value.endsWith('}')) {
       try {
         params[key] = JSON.parse(value);
         return;
       } catch {
-        // JSON パース失敗時は、通常の文字列としてフォールバック
+        // Fallback
       }
     }
 
-    // 3. 通常の文字列パラメータ
+    // 3. 文字列
     params[key] = value;
   });
 
@@ -120,13 +135,15 @@ export function serializeParams(params: Record<string, any>): string {
   return search.toString();
 }
 
+// --- Core Logic ---
+
 export function createRouter<
   RouteNames extends string,
   RouteParams extends Record<RouteNames, any> = RegisteredRouteParams,
   DefaultRouteName extends RouteNames = RouteNames,
   PageComponent = unknown,
 >(
-  pages: Record<RouteNames, { component: PageComponent; isIndex: boolean }>,
+  pages: Record<RouteNames, PageInfo<PageComponent>>,
   options?: {
     specialPages?: Record<string, PageComponent>;
     defaultRouteName?: DefaultRouteName;
@@ -150,30 +167,31 @@ export function createRouter<
     }
   }
 
+  /**
+   * URL (Location) からルートとパラメータを解決する
+   * バリデーションとCoercion (型変換) を行う
+   */
   function resolveRoute(location: string): Route<RouteNames, RouteParams> {
     const parsed = parseLocation<RouteNames, RouteParams>(location);
     let { name, params } = parsed;
 
-    // 1. 静的ルートのチェック
+    // 1. ルート名の解決 (静的 -> 動的 -> 404)
     if (name && pages[name as RouteNames]) {
-      // 既存の静的ルートにマッチ
+      // Static match
     } else if (name) {
-      // 2. 動的ルートのチェック
+      // Dynamic match
       let matched = false;
       for (const dynamic of dynamicRoutes) {
         const match = name.match(dynamic.pattern);
         if (match) {
-          name = dynamic.name; // ルート名を定義名 (例: /users/[id]) に正規化
+          name = dynamic.name;
           matched = true;
-
-          // パスパラメータを params にマージ
           dynamic.paramNames.forEach((paramName, index) => {
             params[paramName] = match[index + 1];
           });
           break;
         }
       }
-
       if (!matched) {
         name = '_404';
       }
@@ -183,12 +201,34 @@ export function createRouter<
       name = '/';
     }
 
+    // 2. スキーマバリデーション & Coercion
+    const pageInfo = pages[name as RouteNames];
+    if (pageInfo?.schema) {
+      // paramsにはパスパラメータ(string)とクエリパラメータ(string|array|json)が混在している
+      // Zodのcoerce機能により、数字などはここで適切な型に変換される
+      const result = pageInfo.schema.safeParse(params);
+      if (result.success) {
+        // 成功したら整形済みのデータ(余計なキーの削除含む)を採用
+        params = result.data;
+      } else {
+        // バリデーション失敗時は 404 へ飛ばす (または専用のエラーページでも可)
+        console.warn(
+          `[city-gas] Validation failed for route "%s". Redirecting to 404.`,
+          name,
+          result.error,
+        );
+        name = '_404';
+        params = {};
+      }
+    }
+
     return {
       name: name as RouteNames,
       params: params as RouteParams[RouteNames],
     };
   }
 
+  // 初期ロード時の処理
   adapter.getLocation().then((location) => {
     const nextRoute = resolveRoute(location);
     currentRoute = nextRoute;
@@ -196,35 +236,48 @@ export function createRouter<
     notify();
   });
 
+  // ブラウザバック/履歴変更時の処理
   adapter.onChange((location) => {
     if (!ready) return;
     const nextRoute = resolveRoute(location);
-
-    // Note: Handling browser back/forward with guards is complex.
-    // For now, we just notify listeners. In a full implementation,
-    // we might need to revert the URL if a guard fails.
-    // But since popstate happens *after* the URL changes, reverting is tricky.
-    // We will implement guard checks for `navigate` first.
-    // If we want to support guards on popstate, we'd need to run them here
-    // and if rejected, push the previous URL back.
-
     currentRoute = nextRoute;
     notify();
   });
 
   const guards: NavigationGuard<RouteNames, RouteParams>[] = [];
 
+  /**
+   * プログラマティックなナビゲーション処理
+   */
   function internalNavigate(
     name: RouteNames,
     params?: any,
     options?: { replace?: boolean },
   ) {
-    const nextParams = (params || {}) as RouteParams[RouteNames];
+    let nextParams = (params || {}) as RouteParams[RouteNames];
+
+    // スキーマバリデーション (Code -> State)
+    const pageInfo = pages[name];
+    if (pageInfo?.schema) {
+      const result = pageInfo.schema.safeParse(nextParams);
+      if (result.success) {
+        nextParams = result.data as RouteParams[RouteNames];
+      } else {
+        // 開発時の実装ミスを防ぐため、navigate時のエラーは例外を投げる
+        throw new Error(
+          `[city-gas] Navigation aborted: Invalid params for "${name}": ${JSON.stringify(
+            z.formatError(result.error),
+          )}`,
+        );
+      }
+    }
+
     const nextRoute: Route<RouteNames, RouteParams> = {
       name,
       params: nextParams,
     };
 
+    // ナビゲーションガードの実行
     const runGuards = (index: number) => {
       if (index >= guards.length) {
         finalizeNavigation();
@@ -235,21 +288,7 @@ export function createRouter<
       guard(nextRoute, currentRoute, (nextState) => {
         if (nextState === false) return;
         if (typeof nextState === 'string') {
-          // Redirect
-          // nextState is route name, but we need to parse if it has params?
-          // The signature of next() is (to?: string | false).
-          // If string, it's usually a path or a route name.
-          // Given our router is name-based mostly but supports paths in parseLocation,
-          // let's assume it's a route name for now or a full path?
-          // If it's a full path (e.g. /login?foo=bar), we should probably parse it.
-          // But internalNavigate expects (name, params).
-
-          // If the user passes a string, we can try to parse it as a location string if it starts with ? or has query params.
-          // Or if it matches a route name.
-
-          // For simplicity in this iteration: assume it's a route name without params,
-          // OR we should expose a way to navigate by path.
-          // Let's assume it's a route name for now.
+          // リダイレクト (引数なしで遷移とみなす)
           internalNavigate(nextState as RouteNames);
           return;
         }
@@ -263,10 +302,12 @@ export function createRouter<
       let pagePath = name as string;
       const queryParams = { ...nextParams };
 
+      // パスパラメータの置換
       if (pagePath.includes('[')) {
         pagePath = pagePath.replace(/\[([^\][]+)\]/g, (_, paramName) => {
           if (paramName in queryParams) {
             const value = queryParams[paramName];
+            // URLパスに使ったパラメータはクエリ文字列から除外する
             delete queryParams[paramName];
             return encodeURIComponent(String(value));
           }
