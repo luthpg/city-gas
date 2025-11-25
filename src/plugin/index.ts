@@ -15,8 +15,13 @@ export function cityGasRouter(options: Options = {}): PluginOption {
       config = resolvedConfig;
     },
     async buildStart() {
+      const pagesDir = path.resolve(
+        config.root,
+        options.pagesDir || 'src/pages',
+      );
+
       // 初回は全スキャンして生成
-      await generate(config.root);
+      await generate(config.root, pagesDir);
     },
     configureServer(server) {
       const pagesDir = path.resolve(

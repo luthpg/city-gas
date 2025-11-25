@@ -438,8 +438,10 @@ export async function removeFile(filePath: string, rootDir: string) {
 /**
  * 初期化 (フルスキャン)
  */
-export async function generate(rootDir: string) {
-  const pagesDir = path.resolve(rootDir, 'src/pages');
+export async function generate(
+  rootDir: string,
+  pagesDir = path.resolve(rootDir, 'src/pages'),
+) {
   const allFiles = await fg(
     path.join(pagesDir, '**/*.{tsx,vue}').replace(/\\/g, '/'),
   );
