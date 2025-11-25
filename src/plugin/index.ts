@@ -2,7 +2,11 @@ import path from 'node:path';
 import type { PluginOption, ResolvedConfig } from 'vite';
 import { generate, removeFile, updateFile } from '@/plugin/generator';
 
-export function cityGasRouter(): PluginOption {
+export interface Options {
+  pagesDir?: string;
+}
+
+export function cityGasRouter(options: Options = {}): PluginOption {
   let config: ResolvedConfig;
 
   return {
@@ -15,7 +19,10 @@ export function cityGasRouter(): PluginOption {
       await generate(config.root);
     },
     configureServer(server) {
-      const pagesDir = path.resolve(config.root, 'src/pages');
+      const pagesDir = path.resolve(
+        config.root,
+        options.pagesDir || 'src/pages',
+      );
 
       server.watcher
         .on('add', async (file) => {

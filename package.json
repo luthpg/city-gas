@@ -27,8 +27,10 @@
     }
   },
   "scripts": {
-    "dev:r": "pnpm run build && vite playground/react",
-    "dev:v": "pnpm run build && vite playground/vue3",
+    "dev:r": "vite playground/react",
+    "dev:v": "vite playground/vue3",
+    "dev:r:b": "pnpm run build && pnpm run dev:r",
+    "dev:v:b": "pnpm run build && pnpm run dev:v",
     "tsc": "tsgo --noEmit",
     "check": "biome check --write",
     "build": "unbuild",
