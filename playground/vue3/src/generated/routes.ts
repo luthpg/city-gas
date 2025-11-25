@@ -4,53 +4,55 @@
 /* biome-ignore: auto generated file */
 
 import { z } from 'zod';
-import P_a122d56f from '../pages/_root.vue';
-import P_7b595a38 from '../pages/about.vue';
-import P_88186061 from '../pages/config/_layout.vue';
-import P_d3c6a90c from '../pages/config/index.vue';
-import P_5fd19095 from '../pages/index.vue';
-import P_7d6327a9 from '../pages/users/_layout.vue';
-import P_1feb462a, { schema as S_1feb462a } from '../pages/users/[userId].vue';
-import P_e9252905 from '../pages/users/index.vue';
-import P_96c01b1e, { schema as S_96c01b1e } from '../pages/users/show.vue';
+import P_042ca80c from '../pages/_404.vue';
+import P_4219c1c9 from '../pages/_root.vue';
+import P_0b53a081 from '../pages/about.vue';
+import P_eabb8eac from '../pages/config/_layout.vue';
+import P_5908c755 from '../pages/config/index.vue';
+import P_13e067ab from '../pages/index.vue';
+import P_75fb65e5 from '../pages/users/_layout.vue';
+import P_12d28c32, { schema as S_12d28c32 } from '../pages/users/[userId].vue';
+import P_cef2d727 from '../pages/users/index.vue';
+import P_f3a8413d, { schema as S_f3a8413d } from '../pages/users/show.vue';
 
 export const pages = {
   '/about': {
-    component: P_7b595a38,
+    component: P_0b53a081,
     isIndex: false,
     schema: z.object({}),
   },
   '/config': {
-    component: P_d3c6a90c,
+    component: P_5908c755,
     isIndex: true,
     schema: z.object({}),
   },
   '/': {
-    component: P_5fd19095,
+    component: P_13e067ab,
     isIndex: true,
     schema: z.object({}),
   },
   '/users/[userId]': {
-    component: P_1feb462a,
+    component: P_12d28c32,
     isIndex: false,
-    schema: S_1feb462a.and(z.object({ userId: z.string() })),
+    schema: S_12d28c32.and(z.object({ userId: z.string() })),
   },
   '/users': {
-    component: P_e9252905,
+    component: P_cef2d727,
     isIndex: true,
     schema: z.object({}),
   },
   '/users/show': {
-    component: P_96c01b1e,
+    component: P_f3a8413d,
     isIndex: false,
-    schema: S_96c01b1e,
+    schema: S_f3a8413d,
   },
 };
 
 export const specialPages = {
-  _root: P_a122d56f,
-  'config/_layout': P_88186061,
-  'users/_layout': P_7d6327a9,
+  _404: P_042ca80c,
+  _root: P_4219c1c9,
+  'config/_layout': P_eabb8eac,
+  'users/_layout': P_75fb65e5,
 };
 
 export const dynamicRoutes = [

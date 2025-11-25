@@ -1,43 +1,119 @@
 import { defineComponent, h } from 'vue';
 import { useNavigate } from '@/adapters/vue/composables';
 
+const styles = `
+:root {
+  --md-sys-color-primary: #6750A4;
+  --md-sys-color-on-primary: #FFFFFF;
+  --md-sys-color-surface: #FFFBFE;
+  --md-sys-color-on-surface: #1C1B1F;
+  --md-sys-color-outline: #79747E;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-primary: #D0BCFF;
+    --md-sys-color-on-primary: #381E72;
+    --md-sys-color-surface: #1C1B1F;
+    --md-sys-color-on-surface: #E6E1E5;
+    --md-sys-color-outline: #938F99;
+  }
+}
+
+.cg-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  font-family: Roboto, system-ui, -apple-system, sans-serif;
+}
+
+.cg-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--md-sys-color-outline);
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  box-sizing: border-box;
+  animation: cg-rotation 1s linear infinite;
+}
+
+@keyframes cg-rotation {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cg-not-found-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  font-family: Roboto, system-ui, -apple-system, sans-serif;
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  text-align: center;
+}
+
+.cg-headline {
+  font-size: 3rem;
+  margin: 0 0 1rem;
+  font-weight: 400;
+}
+
+.cg-body {
+  font-size: 1.2rem;
+  margin: 0 0 2rem;
+  opacity: 0.8;
+}
+
+.cg-button {
+  padding: 0 24px;
+  height: 40px;
+  font-size: 1rem;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: box-shadow 0.2s, opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cg-button:hover {
+  box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  opacity: 0.92;
+}
+
+.cg-button:active {
+  opacity: 0.88;
+}
+`;
+
 export const DefaultLoading = defineComponent({
   name: 'DefaultLoading',
   setup() {
     return () =>
-      h(
-        'div',
-        {
-          style: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            width: '100%',
-          },
-        },
-        [
-          h(
-            'style',
-            `
-            @keyframes city-gas-spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `,
-          ),
-          h('div', {
-            style: {
-              border: '4px solid #f3f3f3',
-              borderTop: '4px solid #3498db',
-              borderRadius: '50%',
-              width: '40px',
-              height: '40px',
-              animation: 'city-gas-spin 1s linear infinite',
-            },
-          }),
-        ],
-      );
+      h('div', { class: 'cg-loading-container' }, [
+        h('style', styles),
+        h('div', { class: 'cg-spinner' }),
+      ]);
   },
 });
 
@@ -46,55 +122,18 @@ export const DefaultNotFound = defineComponent({
   setup() {
     const navigate = useNavigate();
     return () =>
-      h(
-        'div',
-        {
-          style: {
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '80vh',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            color: '#333',
+      h('div', { class: 'cg-not-found-container' }, [
+        h('style', styles),
+        h('h1', { class: 'cg-headline' }, '404'),
+        h('p', { class: 'cg-body' }, 'Page Not Found'),
+        h(
+          'button',
+          {
+            class: 'cg-button',
+            onClick: () => navigate('/', {}),
           },
-        },
-        [
-          h('h1', { style: { fontSize: '3rem', margin: '0 0 1rem' } }, '404'),
-          h(
-            'p',
-            {
-              style: {
-                fontSize: '1.2rem',
-                margin: '0 0 2rem',
-                color: '#666',
-              },
-            },
-            'Page Not Found',
-          ),
-          h(
-            'button',
-            {
-              onClick: () => navigate('/', {}),
-              style: {
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                backgroundColor: '#3498db',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-              },
-              onMouseover: (e: MouseEvent) => {
-                (e.target as HTMLElement).style.backgroundColor = '#2980b9';
-              },
-              onMouseout: (e: MouseEvent) => {
-                (e.target as HTMLElement).style.backgroundColor = '#3498db';
-              },
-            },
-            'Go to Home',
-          ),
-        ],
-      );
+          'Go to Home',
+        ),
+      ]);
   },
 });
