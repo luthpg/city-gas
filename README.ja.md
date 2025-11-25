@@ -111,6 +111,24 @@ export default defineConfig({
 });
 ```
 
+また、ページディレクトリ（監視対象のディレクトリ名）はデフォルトの `src/pages` から変更することも可能です。
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react"; // or vue()
+import { cityGasRouter } from "@ciderjs/city-gas/plugin";
+
+export default defineConfig({
+  plugins: [
+    react(), // or vue()
+    cityGasRouter({
+      pagesDir: 'src/routes',
+    }),
+  ],
+});
+```
+
 ---
 
 ## 🚀 React での使い方

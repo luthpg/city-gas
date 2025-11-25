@@ -111,6 +111,24 @@ export default defineConfig({
 });
 ```
 
+You can change the pages directory (default: `src/pages`) by passing the `pagesDir` option.
+
+```ts
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react"; // or vue()
+import { cityGasRouter } from "@ciderjs/city-gas/plugin";
+
+export default defineConfig({
+  plugins: [
+    react(), // or vue()
+    cityGasRouter({
+      pagesDir: 'src/routes',
+    }),
+  ],
+});
+```
+
 ---
 
 ## 🚀 Usage with React
