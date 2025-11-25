@@ -1,5 +1,6 @@
 import { defineComponent, h, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from '@/adapters/vue/composables';
+import { DefaultLoading, DefaultNotFound } from '@/adapters/vue/defaults';
 
 export const RouterOutlet = defineComponent({
   name: 'RouterOutlet',
@@ -18,11 +19,17 @@ export const RouterOutlet = defineComponent({
     });
 
     return () => {
-      if (!isReady.value) return null; // TODO: Loading component with dynamic import
+      const { pages, specialPages } = router;
+      if (!isReady.value) {
+        const LoadingComponent = specialPages._loading;
+        if (LoadingComponent) {
+          return h(LoadingComponent);
+        }
+        return h(DefaultLoading);
+      }
       if (!route.value) return null;
 
       const { name, params } = route.value;
-      const { pages, specialPages } = router;
 
       const pageInfo = pages[name] as {
         component: any;
@@ -34,7 +41,7 @@ export const RouterOutlet = defineComponent({
         if (NotFoundComponent) {
           return h(NotFoundComponent);
         }
-        return h('div', '404 Not Found.');
+        return h(DefaultNotFound);
       }
 
       const { component: PageComponent, isIndex } = pageInfo;
