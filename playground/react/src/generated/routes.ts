@@ -4,53 +4,53 @@
 /* biome-ignore: auto generated file */
 
 import { z } from 'zod';
-import P_f110edaf from '../pages/_root.tsx';
-import P_4d0c3efd from '../pages/about.tsx';
-import P_993db380 from '../pages/config/_layout.tsx';
-import P_dffc4b16 from '../pages/config/index.tsx';
-import P_c2a670da from '../pages/index.tsx';
-import P_7b0290ed from '../pages/users/_layout.tsx';
-import P_816e1dc8, { schema as S_816e1dc8 } from '../pages/users/[userId].tsx';
-import P_404e6b2d from '../pages/users/index.tsx';
-import P_8a6fdeec, { schema as S_8a6fdeec } from '../pages/users/show.tsx';
+import P_04059d0a from '../pages/_root.tsx';
+import P_fffd9681 from '../pages/about.tsx';
+import P_461da086 from '../pages/config/_layout.tsx';
+import P_bd71fe9e from '../pages/config/index.tsx';
+import P_3cd6ec19 from '../pages/index.tsx';
+import P_9c055ae7 from '../pages/users/_layout.tsx';
+import P_35811af1, { schema as S_35811af1 } from '../pages/users/[userId].tsx';
+import P_fb177fbf from '../pages/users/index.tsx';
+import P_1b714624, { schema as S_1b714624 } from '../pages/users/show.tsx';
 
 export const pages = {
   '/about': {
-    component: P_4d0c3efd,
+    component: P_fffd9681,
     isIndex: false,
     schema: z.object({}),
   },
   '/config': {
-    component: P_dffc4b16,
+    component: P_bd71fe9e,
     isIndex: true,
     schema: z.object({}),
   },
   '/': {
-    component: P_c2a670da,
+    component: P_3cd6ec19,
     isIndex: true,
     schema: z.object({}),
   },
   '/users/[userId]': {
-    component: P_816e1dc8,
+    component: P_35811af1,
     isIndex: false,
-    schema: S_816e1dc8.and(z.object({ userId: z.string() })),
+    schema: S_35811af1.and(z.object({ userId: z.string() })),
   },
   '/users': {
-    component: P_404e6b2d,
+    component: P_fb177fbf,
     isIndex: true,
     schema: z.object({}),
   },
   '/users/show': {
-    component: P_8a6fdeec,
+    component: P_1b714624,
     isIndex: false,
-    schema: S_8a6fdeec,
+    schema: S_1b714624,
   },
 };
 
 export const specialPages = {
-  _root: P_f110edaf,
-  'config/_layout': P_993db380,
-  'users/_layout': P_7b0290ed,
+  _root: P_04059d0a,
+  'config/_layout': P_461da086,
+  'users/_layout': P_9c055ae7,
 };
 
 export const dynamicRoutes = [
