@@ -4,7 +4,6 @@
 /* biome-ignore: auto generated file */
 
 import { z } from 'zod';
-import P_d9974b29 from '../pages/_404.vue';
 import P_a122d56f from '../pages/_root.vue';
 import P_7b595a38 from '../pages/about.vue';
 import P_88186061 from '../pages/config/_layout.vue';
@@ -49,7 +48,6 @@ export const pages = {
 };
 
 export const specialPages = {
-  _404: P_d9974b29,
   _root: P_a122d56f,
   'config/_layout': P_88186061,
   'users/_layout': P_7d6327a9,

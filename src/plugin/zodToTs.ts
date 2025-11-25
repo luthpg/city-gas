@@ -93,7 +93,7 @@ function parseZodNode(node: ts.Expression, sourceFile: ts.SourceFile): ZodMeta {
           // z.array() の呼び出しとみなす
           if (args.length > 0) {
             const itemType = zodToTs(args[0], sourceFile);
-            return { ...meta, type: wrapUnion(itemType) + '[]' };
+            return { ...meta, type: `${wrapUnion(itemType)}[]` };
           }
           return { ...meta, type: 'any[]' };
         }

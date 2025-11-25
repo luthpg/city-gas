@@ -308,7 +308,7 @@ function flushFiles(rootDir: string) {
   const pagesDir = path.resolve(rootDir, 'src/pages');
   const allCachedFiles = Array.from(fileCache.keys());
 
-  const specialFileNames = ['_layout', '_root', '_404'];
+  const specialFileNames = ['_layout', '_root', '_404', '_loading'];
   const pageFiles: string[] = [];
   const specialFiles: string[] = [];
 

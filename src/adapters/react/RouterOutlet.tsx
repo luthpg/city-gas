@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { DefaultLoading, DefaultNotFound } from '@/adapters/react/defaults';
 import { useRoute, useRouter } from '@/adapters/react/hooks';
 import type {
   RegisteredRouteNames,
@@ -16,11 +17,16 @@ export function RouterOutlet<
     () => router.isReady(),
     () => router.isReady(),
   );
-  if (!isReady) return null; // TODO: Loading component with dynamic import
+  const { pages, specialPages } = router;
+  if (!isReady) {
+    const LoadingComponent = specialPages._loading as
+      | React.ComponentType<any>
+      | undefined;
+    return LoadingComponent ? <LoadingComponent /> : <DefaultLoading />;
+  }
   if (!route) return null;
 
   const { name, params } = route;
-  const { pages, specialPages } = router;
 
   const pageInfo = pages[name] as {
     component: React.ComponentType<any>;
@@ -32,7 +38,7 @@ export function RouterOutlet<
     if (NotFoundComponent) {
       return <NotFoundComponent />;
     }
-    return <div>404 Not Found.</div>;
+    return <DefaultNotFound />;
   }
 
   const { component: PageComponent, isIndex } = pageInfo;
