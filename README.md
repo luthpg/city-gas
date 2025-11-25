@@ -41,7 +41,8 @@ Certain filenames are reserved to function as layout components.
 
 - `_root.tsx` / `_root.vue`: The root layout that wraps the entire application.
 - `_layout.tsx` / `_layout.vue`: Provides a common layout for child routes in the same directory and its subdirectories.
-- `_404.tsx` / `_404.vue`: A fallback page displayed when no matching route is found.
+- `_404.tsx` / `_404.vue`: A fallback page displayed when no matching route is found. If you don't create this file, the router will display its own 404 page.
+- `_loading.tsx` / `_loading.vue`: A loading page displayed when a route is loading. If you don't create this file, the router will display its own loading page.
 
 #### Project Structure Example
 
@@ -51,6 +52,7 @@ src/
     ├── _root.tsx         # The root layout wrapping the entire app
     ├── _layout.tsx       # Layout for the root and its children
     ├── _404.tsx          # Not found page
+    ├── _loading.tsx      # Loading page
     ├── index.tsx         # Home page (route: /)
     └── users/
         ├── _layout.tsx   # Nested layout for /users/* routes only
