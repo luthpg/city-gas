@@ -5,147 +5,72 @@
 [![npm version](https://img.shields.io/npm/v/@ciderjs/city-gas.svg)](https://www.npmjs.com/package/@ciderjs/city-gas)
 [![GitHub issues](https://img.shields.io/github/issues/luthpg/city-gas.svg)](https://github.com/luthpg/city-gas/issues)
 
-## 🌐 概要
+**Google Apps Script (GAS)** と **モダンブラウザ** の両方で動作する、React & Vue 3 向けの型安全なファイルベースルーターです。
 
-`city-gas` は **Google Apps Script (GAS)** と **ブラウザ環境**の両方で動作する、React / Vue 3 向けの型安全なルーターです。
-**ファイルベースルーティング**、**Zod対応のパラメータ設定**、そして **Vite プラグインによる型自動生成**を特徴としています。
+## ✨ 特徴
+
+* 🚀 **Universal**: ブラウザ (`window.history`) と GAS (`google.script.history`) の両環境で動作。環境を自動判定してアダプタを切り替えます。
+* 📂 **File-based Routing**: `src/pages` ディレクトリの構造に基づいてルートを自動生成。
+* 🛡️ **Type Safety**: Zod スキーマでクエリパラメータを定義し、パスパラメータとクエリの両方に対して厳密な型チェックとバリデーションを提供。
+* 🤖 **Auto Generation**: Vite プラグインがルート定義と型定義 (`.d.ts`) を自動生成。`Maps` や `useParams` で強力な補完が効きます。
+* 🧩 **Nested Layouts**: `_layout`, `_root` などの特殊ファイルによる柔軟なレイアウトシステム。
 
 ---
 
 ## 📦 インストール
 
+`react` / `vue` および `vite`, `zod` が必要です。
+
 ```bash
-npm install @ciderjs/city-gas
-# または
-pnpm add @ciderjs/city-gas
+# npm
+npm install @ciderjs/city-gas zod
+
+# pnpm
+pnpm add @ciderjs/city-gas zod
+
+# yarn
+yarn add @ciderjs/city-gas zod
 ```
 
 ---
 
-## 🔥 コア機能
+## 🚀 クイックスタート
 
-`city-gas` はフレームワークに依存しないコア機能を提供します。
+### 1. Vite 設定
 
-### 1. ファイルベースルーティング
-
-`src/pages` ディレクトリの構造が自動的にルート定義に変換されます。
-
-- `src/pages/index.tsx` → `/`
-- `src/pages/about.vue` → `/about`
-- `src/pages/users/show.tsx` → `/users/show`
-- `src/pages/users/[id].tsx` → `/users/[id]` (動的ルート)
-
-### 2. ネストされたルート (レイアウト)
-
-特定のファイル名は予約されており、レイアウトコンポーネントとして機能します。
-
-- `_root.tsx` / `_root.vue`: アプリケーション全体を囲むルートレイアウト。
-- `_layout.tsx` / `_layout.vue`: 同じディレクトリとそのサブディレクトリ内の子ルートに共通のレイアウトを提供します。
-- `_404.tsx` / `_404.vue`: マッチするルートが見つからなかった場合に表示されるフォールバックページ。作成しない場合は、ルーター提供の404ページが表示されます。
-- `_loading.tsx` / `_loading.vue`: ルートがロードされている間表示されるページ。作成しない場合は、ルーター提供の読み込み中ページが表示されます。
-
-#### プロジェクト構成例
-
-```tree
-src/
-└── pages/
-    ├── _root.tsx         # 全体を囲むルートレイアウト
-    ├── _layout.tsx       # 直下とサブディレクトリに適用されるレイアウト
-    ├── _404.tsx          # マッチするルートが見つからなかった場合に表示されるフォールバックページ。
-    ├── _loading.tsx      # ルートがロードされている間表示されるページ。
-    ├── index.tsx         # ホームページ (ルート: /)
-    └── users/
-        ├── _layout.tsx   # /users/* ルートのみに適用されるネストされたレイアウト
-        ├── [id].tsx      # ユーザー詳細ページ (ルート: /users/[id])
-        └── index.tsx     # ユーザー一覧ページ (ルート: /users)
-```
-
-### 3. 動的ルート (Dynamic Routes)
-
-ファイル名を `[id].tsx` のようにブラケットで囲むことで、動的ルートを定義できます。
-ブラケット内のパラメータ名（例: `id`）は `useParams` で取得できます。
-
-- `src/pages/users/[id].tsx` は `/users/123`, `/users/abc` などにマッチします。
-- `src/pages/posts/[slug].vue` は `/posts/my-first-post` などにマッチします。
-
-### 4. Zod対応のパラメータ
-
-各ページでは `schema` 定数を `export` することで、そのページが受け取るパラメータの型・バリデーションを定義できます。
-
-Viteプラグインはこれを検出し、型安全な `navigate` 関数や `useParams` フック/Composableを生成します。
-
-- ランタイムでルーティングが実行される際、 `schema` によるバリデーションチェックを実行します。バリデーションエラーになる場合は、 `404` エラーを表示します。
-
-#### パラメータ定義の例
-
-```typescript
-// src/pages/users/[id].tsx
-import { z } from 'zod';
-export const schema = z.object({
-  // id: z.string(), // パスパラメータは自動的に必須の「string」型で定義されるので記載不要
-  tab: z.enum(['profile', 'settings']).optional(); // オプショナル
-});
-```
-
-### 5. Vite プラグインによる型生成
-
-`vite.config.ts` にプラグインを追加するだけで、`src/pages` ディレクトリを監視し、ルートと型の定義を自動生成します。
-
-- `.generated/router.d.ts`: `RouteNames` と `RouteParams` の型定義
-- `.generated/routes.ts`: ルート名とコンポーネントのマッピング
-
-> [!NOTE]
-> プラグインはパフォーマンス最適化のため、ファイルの更新時刻 (`mtime`) に基づく内部キャッシュを使用し、不要な再生成を回避します。
+`vite.config.ts` にプラグインを追加します。これがファイル監視と型生成を行います。
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"; // or vue()
-import { cityGasRouter } from "@ciderjs/city-gas/plugin";
-
-export default defineConfig({
-  plugins: [
-    react(), // or vue()
-    cityGasRouter(),
-  ],
-});
-```
-
-また、ページディレクトリ（監視対象のディレクトリ名）はデフォルトの `src/pages` から変更することも可能です。
-
-```ts
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"; // or vue()
-import { cityGasRouter } from "@ciderjs/city-gas/plugin";
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+// フレームワークに合わせて選択
+import react from '@vitejs/plugin-react';
+// import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [
     react(), // or vue()
     cityGasRouter({
-      pagesDir: 'src/routes',
+      pagesDir: 'src/pages', // デフォルトは 'src/pages'
     }),
   ],
 });
 ```
 
----
+### 2. アプリケーションのエントリーポイント設定
 
-## 🚀 React での使い方
-
-### 1. 初期化
-
-エントリーポイント (`main.tsx`) でルーターをセットアップし、`RouterProvider` でアプリケーションをラップします。
+#### React の場合 (`src/main.tsx`)
 
 ```tsx
-// src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
+// 自動生成されたルート定義をインポート
 import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-// ルーターインスタンスを作成
+// ルーターの初期化
 const router = createRouter(pages, { specialPages, dynamicRoutes });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -155,134 +80,286 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-### 2. Hooks
+#### Vue の場合 (`src/main.ts`)
 
-`city-gas` は型安全な操作のためのカスタムフックを提供します。
+```ts
+import { createApp } from 'vue';
+import { createRouter } from '@ciderjs/city-gas';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-#### `useParams`
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+const app = createApp(RouterOutlet);
 
-現在のページのパラメータを型安全に取得します。
+app.use(createRouterPlugin(router));
+app.mount('#app');
+```
+
+---
+
+## 📖 ルーティングガイド
+
+### ディレクトリ構造とマッピング
+
+`src/pages` (設定可能) 以下のファイルがルートになります。
+
+```text
+src/pages/
+├── index.tsx           -> "/"
+├── about.tsx           -> "/about"
+├── users/
+│   ├── index.tsx       -> "/users"
+│   └── show.tsx        -> "/users/show"
+└── posts/
+    └── [postId].tsx    -> "/posts/[postId]" (動的ルート)
+```
+
+### 動的ルート (Dynamic Routes)
+
+ファイル名を `[paramName].tsx` とすることで、パスパラメータを取得できます。
 
 ```tsx
-// src/pages/users/[id].tsx
+// src/pages/users/[userId].tsx
 import { useParams } from '@ciderjs/city-gas/react';
-import { z } from 'zod';
 
-export const schema = z.object({
-  tab: z.enum(['profile', 'settings'). optional(),
-});
+export default function UserPage() {
+  // 型安全: userId は string として推論されます
+  const { userId } = useParams('/users/[userId]');
+  return <div>User ID: {userId}</div>;
+}
+```
 
-export default function UserDetail() {
-  // ルート名を引数として渡すことで、厳密な型推論が可能になります
-  const { id, tab } = useParams('/users/[id]');
-  
+### ネストされたレイアウト
+
+特殊なファイル名を使用することで、階層的なレイアウトを実現できます。
+
+* **`_root.tsx`**: アプリケーション全体をラップする最上位レイアウト。
+* **`_layout.tsx`**: 配置されたディレクトリ以下の全てのルートに適用されるレイアウト。
+* **`_404.tsx`**: 定義されていないルートにアクセスした際に表示されるコンポーネント。
+* **`_loading.tsx`**: ページ遷移中や初期化中に表示されるコンポーネント。
+
+**例: `src/pages/settings/_layout.tsx`**
+```tsx
+// React Example
+export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <h2>User: {id}</h2>
-      <p>Tab: {tab ?? 'profile'}</p>
+    <div className="settings-wrapper">
+      <aside>Settings Sidebar</aside>
+      <main>{children}</main>
     </div>
   );
 }
 ```
 
-#### `useNavigate`
-
-型チェック付きでページ遷移を実行します。
-
-```tsx
-// src/components/SomeComponent.tsx
-import { useNavigate } from '@ciderjs/city-gas/react';
-
-const MyComponent = () => {
-  const navigate = useNavigate();
-  return (
-    <nav>
-      <button onClick={() => navigate('/')}>Home</button>
-      {/* パラメータも型安全 */}
-      <button onClick={() => navigate('/users/[id]', { id: '123', tab: 'settings' })}>
-        User 123
-      </button>
-    </nav>
-  );
-};
-```
-
 ---
 
-## 🚀 Vue での使い方
+## 🛡️ パラメータの定義とバリデーション (Zod)
 
-### 1. 初期化
+各ページファイルで `schema` をエクスポートすると、そのページが受け取るクエリパラメータを定義できます。
+定義されたスキーマは、ランタイムでのバリデーションと、静的な型生成の両方に使用されます。
 
-エントリーポイント (`main.ts`) でルータープラグインをセットアップし、`RouterOutlet` をマウントします。
+### React の例
 
-```ts
-// src/main.ts
-import { createRouter } from '@ciderjs/city-gas';
-import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
-import { createApp } from 'vue';
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
+```tsx
+// src/pages/search.tsx
+import { z } from 'zod';
+import { useParams } from '@ciderjs/city-gas/react';
 
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
+// スキーマ定義
+export const schema = z.object({
+  q: z.string(),
+  page: z.coerce.number().optional(), // URL文字列を数値に変換
+  sort: z.enum(['date', 'relevance']).optional(),
+});
+
+export default function SearchPage() {
+  // params は { q: string; page?: number; sort?: "date" | "relevance" } と型推論される
+  const params = useParams('/search');
+
+  return (
+    <div>
+      <h1>Search: {params.q}</h1>
+      <p>Page: {params.page ?? 1}</p>
+    </div>
+  );
+}
 ```
 
-### 2. Composables
+### Vue の例
 
-Vue 3 の Composition API で利用できる Composable を提供します。
-
-#### `useParams`
-
-現在のページのパラメータを型安全に取得します。
+> [!NOTE]
+> **Vue ユーザー向けの注意**
+> `<script setup>` 内では `export` ができないため、`schema` の定義は必ず通常の `<script>` ブロックを別途用意して行ってください。
 
 ```vue
-<!-- src/pages/users/[id].vue -->
-<template>
-  <div>
-    <h2>User: {{ id }}</h2>
-    <p>Tab: {{ tab ?? 'profile' }}</p>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useParams } from '@ciderjs/city-gas/vue';
 
-// ルート名を引数として渡すことで、厳密な型推論が可能になります
-const { id, tab } = useParams('/users/[id]');
+// setup 内でref化されたパラメータを利用
+const params = useParams('/search');
 </script>
 
-<!-- params のエクスポート用に別の script タグを用意 -->
 <script lang="ts">
 import { z } from 'zod';
+
 export const schema = z.object({
-  tab: z.enum(['profile', 'settings']). optional(),
+  q: z.string(),
+  page: z.coerce.number().optional(),
+  sort: z.enum(['date', 'relevance']).optional(),
 });
 </script>
+
+<template>
+  <div>
+    <h1>Search: {{ params.q }}</h1>
+    <p>Page: {{ params.page ?? 1 }}</p>
+  </div>
+</template>
 ```
 
-#### `useNavigate`
+> [!CAUTION]
+> **GAS環境でのURL長制限について**
+> Google Apps Script 環境では URL の長さに制限（約 2KB 程度）があります。
+> 本ライブラリはオブジェクトパラメータを JSON シリアライズして URL に含めるため、大きなデータを `params` に渡すとエラーの原因になります。
+> 大規模なデータを受け渡す場合は、`PropertiesService` や `CacheService`、あるいはグローバルな状態管理ライブラリ（Pinia, Recoil等）の利用を検討してください。
 
-型チェック付きでページ遷移を実行します。
+> [!WARNING]
+> バリデーションに失敗した場合、ルーターは自動的に `_404` ページへ遷移します。
+
+---
+
+## 🧭 ナビゲーション
+
+`useNavigate` フックを使用して、型安全にページ遷移を行います。
+
+### React
+
+```tsx
+import { useNavigate } from '@ciderjs/city-gas/react';
+
+const Component = () => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    // 第1引数: ルート名（補完あり）
+    // 第2引数: パラメータ（schemaに基づき型チェックあり）
+    navigate('/search/[id]', { id: '1', q: 'city-gas', page: 1 });
+    
+    // オプションで replace も可能
+    // navigate('/', {}, { replace: true });
+  };
+
+  return <button onClick={handleClick}>Search</button>;
+};
+```
+
+### Vue
 
 ```vue
-<!-- src/components/SomeComponent.vue -->
-<template>
-  <nav>
-    <button @click="() => navigate('/')">Home</button>
-    <!-- パラメータも型安全 -->
-    <button @click="() => navigate('/users/[id]', { id: '123', tab: 'settings' })">
-      User 123
-    </button>
-  </nav>
-</template>
-
 <script setup lang="ts">
 import { useNavigate } from '@ciderjs/city-gas/vue';
+
 const navigate = useNavigate();
+
+const handleClick = () => {
+  navigate('/search', { q: 'city-gas', page: 1 });
+};
 </script>
 ```
 
 ---
 
-## 📜 ライセンス
+## ⚙️ API リファレンス
 
-MIT
+### `createRouter(pages, options)`
+
+ルーターインスタンスを生成します。
+
+* `pages`: `.generated/routes.ts` からインポートしたページ定義。
+* `options`:
+    * `specialPages`: `_root`, `_layout` などの特殊ページ定義。
+    * `dynamicRoutes`: 動的ルートのマッチング用定義。
+    * `defaultRouteName`: デフォルトのルート（通常は `'/'`）。
+
+### `router` インスタンス
+
+* `router.navigate(name, params, options)`: 指定したルートへ遷移します。
+* `router.subscribe(listener)`: ルート変更を監視します。
+* `router.getCurrentRoute()`: 現在のルート情報を取得します。
+* `router.beforeEach(guard)`: ナビゲーションガードを登録します。
+
+#### ナビゲーションガード
+
+```ts
+router.beforeEach((to, from, next) => {
+  if (to.name === '/admin' && !isAdmin) {
+    // ログインページへリダイレクト
+    next('/login');
+  } else {
+    // 遷移を許可
+    next();
+    // もしくは next(false) でキャンセル
+  }
+});
+```
+
+### Hooks / Composables
+
+* `useParams(routeName)`: 現在のルートのパラメータを取得します。引数にルート名を渡すと型が絞り込まれます。
+* `useNavigate()`: ナビゲーション関数を返します。
+* `useRoute()`: 現在のルート名とパラメータを含むオブジェクト全体を返します。
+
+---
+
+## 🤝 コントリビュートガイド
+
+`city-gas` の開発に参加していただきありがとうございます！
+
+### 開発環境のセットアップ
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/luthpg/city-gas.git
+cd city-gas
+
+# 依存関係のインストール (pnpm を使用してください)
+pnpm install
+
+# ビルド
+pnpm build
+```
+
+### プレイグラウンドでの動作確認
+
+リポジトリには React と Vue の動作確認用プレイグラウンドが含まれています。
+
+```bash
+# React 版の起動
+pnpm run dev:r
+
+# Vue 版の起動
+pnpm run dev:v
+```
+
+### テストの実行
+
+```bash
+# 全テストの実行
+pnpm test
+
+# 型チェック
+pnpm run check
+```
+
+### Pull Request のガイドライン
+
+1.  機能追加やバグ修正ごとにブランチを作成してください。
+2.  変更内容に対応するテストを追加してください。
+3.  コミットメッセージは明確に記述してください。
+4.  PRを作成する前に `pnpm test` と `pnpm run check` がパスすることを確認してください。
+
+---
+
+## 📝 ライセンス
+
+MIT License
