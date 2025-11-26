@@ -5,147 +5,72 @@
 [![npm version](https://img.shields.io/npm/v/@ciderjs/city-gas.svg)](https://www.npmjs.com/package/@ciderjs/city-gas)
 [![GitHub issues](https://img.shields.io/github/issues/luthpg/city-gas.svg)](https://github.com/luthpg/city-gas/issues)
 
-## 🌐 Overview
+**@ciderjs/city-gas** is a type-safe, file-based router for **React** and **Vue 3** that operates seamlessly in both **Google Apps Script (GAS)** and **modern browser** environments.
 
-`city-gas` is a type-safe router for React and Vue 3 applications that works both in **Google Apps Script (GAS)** and **browser environments**.
-It features **file-based routing**, a **parameter and validation configuration with Zod**, and a **Vite plugin** that auto-generates TypeScript types for safe navigation.
+## ✨ Features
+
+* 🚀 **Universal**: Works in both browser (`window.history`) and GAS (`google.script.history`) environments, automatically switching adapters.
+* 📂 **File-based Routing**: Routes are automatically generated based on the structure of your `src/pages` directory.
+* 🛡️ **Type Safety**: Use **Zod schemas** to define query parameters, providing strict type checking and runtime validation for both path and query parameters.
+* 🤖 **Auto Generation**: A Vite plugin automatically generates route definitions and type declarations (`.d.ts`), enabling powerful autocomplete for `Maps` and `useParams`.
+* 🧩 **Nested Layouts**: Flexible layout system using special files like `_layout` and `_root`.
 
 ---
 
 ## 📦 Installation
 
+This package requires `react` / `vue`, `vite`, and `zod`.
+
 ```bash
-npm install @ciderjs/city-gas
-# or
-pnpm add @ciderjs/city-gas
+# npm
+npm install @ciderjs/city-gas zod
+
+# pnpm
+pnpm add @ciderjs/city-gas zod
+
+# yarn
+yarn add @ciderjs/city-gas zod
 ```
 
 ---
 
-## 🔥 Core Features
+## 🚀 Quick Start
 
-`city-gas` provides a set of framework-agnostic core features.
+### 1. Vite Configuration
 
-### 1. File-Based Routing
-
-Your `src/pages` directory structure is automatically converted into route definitions.
-
-- `src/pages/index.tsx` → `/`
-- `src/pages/about.vue` → `/about`
-- `src/pages/users/show.tsx` → `/users/show`
-- `src/pages/users/[id].tsx` → `/users/[id]` (Dynamic Route)
-
-### 2. Nested Routes (Layouts)
-
-Certain filenames are reserved to function as layout components.
-
-- `_root.tsx` / `_root.vue`: The root layout that wraps the entire application.
-- `_layout.tsx` / `_layout.vue`: Provides a common layout for child routes in the same directory and its subdirectories.
-- `_404.tsx` / `_404.vue`: A fallback page displayed when no matching route is found. If you don't create this file, the router will display its own 404 page.
-- `_loading.tsx` / `_loading.vue`: A loading page displayed when a route is loading. If you don't create this file, the router will display its own loading page.
-
-#### Project Structure Example
-
-```tree
-src/
-└── pages/
-    ├── _root.tsx         # The root layout wrapping the entire app
-    ├── _layout.tsx       # Layout for the root and its children
-    ├── _404.tsx          # Not found page
-    ├── _loading.tsx      # Loading page
-    ├── index.tsx         # Home page (route: /)
-    └── users/
-        ├── _layout.tsx   # Nested layout for /users/* routes only
-        ├── [id].tsx      # User detail page (route: /users/[id])
-        └── index.tsx     # User top page (route: /users)
-```
-
-### 3. Dynamic Routes
-
-You can define dynamic routes by wrapping the filename in brackets, like `[id].tsx`.
-The parameter name inside the brackets (e.g., `id`) will be available in `useParams`.
-
-- `src/pages/users/[id].tsx` matches `/users/123`, `/users/abc`, etc.
-- `src/pages/posts/[slug].vue` matches `/posts/my-first-post`.
-
-### 3. Type-Safe Parameters (Zod)
-
-In each page, you can define the types of parameters it accepts by exporting a `schema` constant.
-
-The Vite plugin detects this and generates type-safe `navigate` functions and `useParams` hooks/composables.
-
-- Router validates with schema in runtime. If it throws some errors, router returns `404` error page.
-
-#### Example of Defining Parameters
-
-```typescript
-// src/pages/users/[id].tsx
-import { z } from 'zod';
-export const params = {
-  // id: z.string(), // path parameter is auto defined as required string
-  tab: z.enum(['profile', 'settings']).optional(), // optional
-};
-```
-
-### 4. Type Generation with Vite Plugin
-
-Simply add the plugin to your `vite.config.ts` to watch the `src/pages` directory and auto-generate route and type definitions.
-
-- `.generated/router.d.ts`: `RouteNames` and `RouteParams` type definitions.
-- `.generated/routes.ts`: A map of route names to their components.
-
-> [!NOTE]
-> The plugin uses an internal cache based on file modification times (`mtime`) to optimize performance and avoid unnecessary regenerations.
+Add the plugin to your `vite.config.ts`. This handles file watching and type generation.
 
 ```ts
 // vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"; // or vue()
-import { cityGasRouter } from "@ciderjs/city-gas/plugin";
-
-export default defineConfig({
-  plugins: [
-    react(), // or vue()
-    cityGasRouter(),
-  ],
-});
-```
-
-You can change the pages directory (default: `src/pages`) by passing the `pagesDir` option.
-
-```ts
-// vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react"; // or vue()
-import { cityGasRouter } from "@ciderjs/city-gas/plugin";
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+// Choose the plugin for your framework
+import react from '@vitejs/plugin-react';
+// import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [
     react(), // or vue()
     cityGasRouter({
-      pagesDir: 'src/routes',
+      pagesDir: 'src/pages', // defaults to 'src/pages'
     }),
   ],
 });
 ```
 
----
+### 2. Application Entry Point Setup
 
-## 🚀 Usage with React
-
-### 1. Initialization
-
-Set up the router in your entry point (`main.tsx`) and wrap your application with the `RouterProvider`.
+#### For React (`src/main.tsx`)
 
 ```tsx
-// src/main.tsx
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { createRouter } from '@ciderjs/city-gas';
 import { RouterProvider } from '@ciderjs/city-gas/react';
+// Import the automatically generated route definitions
 import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-// Create the router instance
+// Initialize the router
 const router = createRouter(pages, { specialPages, dynamicRoutes });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -155,135 +80,285 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 );
 ```
 
-### 2. Hooks
+#### For Vue (`src/main.ts`)
 
-`city-gas` provides custom hooks for type-safe operations.
+```ts
+import { createApp } from 'vue';
+import { createRouter } from '@ciderjs/city-gas';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-#### `useParams`
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+const app = createApp(RouterOutlet);
 
-Safely access the parameters of the current page.
+app.use(createRouterPlugin(router));
+app.mount('#app');
+```
+
+---
+
+## 📖 Routing Guide
+
+### Directory Structure and Mapping
+
+Files under `src/pages` (configurable) become your routes.
+
+```text
+src/pages/
+├── index.tsx           -> "/"
+├── about.tsx           -> "/about"
+├── users/
+│   ├── index.tsx       -> "/users"
+│   └── show.tsx        -> "/users/show"
+└── posts/
+    └── [postId].tsx    -> "/posts/[postId]" (Dynamic Route)
+```
+
+### Dynamic Routes
+
+Use the naming convention `[paramName].tsx` to create dynamic routes and access path parameters.
 
 ```tsx
-// src/pages/users/[id].tsx
+// src/pages/users/[userId].tsx
 import { useParams } from '@ciderjs/city-gas/react';
-import { z } from 'zod';
 
-export const schema = z.object({
-  tab: z.enum(['profile', 'settings']).optional(),
-});
+export default function UserPage() {
+  // Type Safe: userId is inferred as string
+  const { userId } = useParams('/users/[userId]');
+  return <div>User ID: {userId}</div>;
+}
+```
 
-export default function UserDetail() {
-  // Pass the route name as an argument for strict type inference
-  const { id, tab } = useParams('/users/[id]');
-  
+### Nested Layouts
+
+Special filenames are used to achieve hierarchical layouts.
+
+* **`_root.tsx`**: The highest-level layout wrapping the entire application.
+* **`_layout.tsx`**: A layout applied to all routes within the directory it is placed in.
+* **`_404.tsx`**: The component displayed when an undefined route is accessed.
+* **`_loading.tsx`**: The component displayed during page transitions or initialization.
+
+**Example: `src/pages/settings/_layout.tsx`**
+```tsx
+// React Example
+export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div>
-      <h2>User: {id}</h2>
-      <p>Tab: {tab ?? 'profile'}</p>
+    <div className="settings-wrapper">
+      <aside>Settings Sidebar</aside>
+      <main>{children}</main>
     </div>
   );
 }
 ```
 
-#### `useNavigate`
-
-Perform page transitions with type-checking.
-
-```tsx
-// src/components/SomeComponent.tsx
-import { useNavigate } from '@ciderjs/city-gas/react';
-
-const MyComponent = () => {
-  const navigate = useNavigate();
-  return (
-    <nav>
-      <button onClick={() => navigate('/')}>Home</button>
-      {/* Parameters are also type-safe */}
-      <button onClick={() => navigate('/users/[id]', { id: '123', tab: 'settings' })}>
-        User 123
-      </button>
-    </nav>
-  );
-};
-```
-
 ---
 
-## 🚀 Usage with Vue
+## 🛡️ Parameter Definition and Validation (Zod)
 
-### 1. Initialization
+By exporting a `schema` from your page component file, you can define the expected query parameters. This schema is used for both runtime validation and static type generation.
 
-Set up the router plugin in your entry point (`main.ts`) and mount the `RouterOutlet`.
+### React Example
 
-```ts
-// src/main.ts
-import { createRouter } from '@ciderjs/city-gas';
-import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
-import { createApp } from 'vue';
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
+```tsx
+// src/pages/search.tsx
+import { z } from 'zod';
+import { useParams } from '@ciderjs/city-gas/react';
 
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-createApp(RouterOutlet).use(createRouterPlugin(router)).mount('#root');
+// Schema definition
+export const schema = z.object({
+  q: z.string(),
+  page: z.coerce.number().optional(), // Coerce URL string to a number
+  sort: z.enum(['date', 'relevance']).optional(),
+});
+
+export default function SearchPage() {
+  // params is inferred as { q: string; page?: number; sort?: "date" | "relevance" }
+  const params = useParams('/search');
+
+  return (
+    <div>
+      <h1>Search: {params.q}</h1>
+      <p>Page: {params.page ?? 1}</p>
+    </div>
+  );
+}
 ```
 
-### 2. Composables
+### Vue Example
 
-Provides Composables for use with Vue 3's Composition API.
-
-#### `useParams`
-
-Safely access the parameters of the current page.
+> [!NOTE]
+> **Note for Vue Users**
+> Since `export` statements are not strictly supported within Vue's `<script setup>` syntax for this purpose, you must define and export the `schema` within a separate, standard `<script>` block.
 
 ```vue
-<!-- src/pages/users/[id].vue -->
-<template>
-  <div>
-    <h2>User: {{ id }}</h2>
-    <p>Tab: {{ tab ?? 'profile' }}</p>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { useParams } from '@ciderjs/city-gas/vue';
 
-// Pass the route name as an argument for strict type inference
-const { id, tab } = useParams('/users/[id]');
+// Use params ref in setup
+const params = useParams('/search');
 </script>
 
-<!-- Use a separate script block to export params -->
 <script lang="ts">
 import { z } from 'zod';
-export const schema = {
-  tab: z.enum(['profile', 'settings']).optional(),
-};
+
+export const schema = z.object({
+  q: z.string(),
+  page: z.coerce.number().optional(),
+  sort: z.enum(['date', 'relevance']).optional(),
+});
 </script>
+
+<template>
+  <div>
+    <h1>Search: {{ params.q }}</h1>
+    <p>Page: {{ params.page ?? 1 }}</p>
+  </div>
+</template>
 ```
 
-#### `useNavigate`
+> [!CAUTION]
+> **URL Length Limitations (GAS Environment)**
+> Google Apps Script (GAS) environments have strict URL length limits (approximately 2KB).
+> Since this library serializes object parameters into JSON strings within the URL, passing large data structures may cause errors.
+> For large datasets, consider using `PropertiesService`, `CacheService`, or a global state management library instead of passing them as route parameters.
 
-Perform page transitions with type-checking.
+> [!WARNING]
+> If validation fails, the router automatically redirects to the `_404` page.
+
+---
+
+## 🧭 Navigation
+
+Use the `useNavigate` hook to perform type-safe page transitions.
+
+### React
+
+```tsx
+import { useNavigate } from '@ciderjs/city-gas/react';
+
+const Component = () => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    // 1st argument: Route name (with autocomplete)
+    // 2nd argument: Parameters (type-checked based on schema)
+    navigate('/search/[id]', { id: '1', q: 'city-gas', page: 1 });
+    
+    // Optional replace flag
+    // navigate('/', {}, { replace: true });
+  };
+
+  return <button onClick={handleClick}>Search</button>;
+};
+```
+
+### Vue
 
 ```vue
-<!-- src/components/SomeComponent.vue -->
-<template>
-  <nav>
-    <button @click="() => navigate('/')">Home</button>
-    <!-- Parameters are also type-safe -->
-    <button @click="() => navigate('/users/[id]', { id: '123', tab: 'settings' })">
-      User 123
-    </button>
-  </nav>
-</template>
-
 <script setup lang="ts">
 import { useNavigate } from '@ciderjs/city-gas/vue';
+
 const navigate = useNavigate();
-</script>
+
+const handleClick = () => {
+  navigate('/search', { q: 'city-gas', page: 1 });
+};
 </script>
 ```
 
 ---
 
-## 📜 License
+## ⚙️ API Reference
 
-MIT
+### `createRouter(pages, options)`
+
+Creates the router instance.
+
+* `pages`: The page definitions imported from `.generated/routes.ts`.
+* `options`:
+    * `specialPages`: Definitions for special pages like `_root`, `_layout`, etc.
+    * `dynamicRoutes`: Definitions used for dynamic route matching.
+    * `defaultRouteName`: The default route (usually `'/'`).
+
+### `router` Instance
+
+* `router.navigate(name, params, options)`: Navigates to the specified route.
+* `router.subscribe(listener)`: Subscribes to route changes.
+* `router.getCurrentRoute()`: Gets the current route information.
+* `router.beforeEach(guard)`: Registers a navigation guard.
+
+#### Navigation Guard
+
+```ts
+router.beforeEach((to, from, next) => {
+  if (to.name === '/admin' && !isAdmin) {
+    // Redirect to login page
+    next('/login');
+  } else {
+    // Allow transition
+    next();
+    // Alternatively, next(false) to cancel the transition
+  }
+});
+```
+
+### Hooks / Composables
+
+* `useParams(routeName)`: Retrieves parameters for the current route. Passing a `routeName` narrows the type.
+* `useNavigate()`: Returns the navigation function.
+* `useRoute()`: Returns the entire current route object, including name and parameters.
+
+---
+
+## 🤝 Contribution Guide
+
+Thank you for considering contributing to `city-gas`!
+
+### Setting up the Development Environment
+
+```bash
+# Clone the repository
+git clone https://github.com/luthpg/city-gas.git
+cd city-gas
+
+# Install dependencies (please use pnpm)
+pnpm install
+
+# Build the packages
+pnpm build
+```
+
+### Running the Playground
+
+The repository includes playgrounds for both React and Vue to test changes.
+
+```bash
+# Start the React playground
+pnpm run dev:r
+
+# Start the Vue playground
+pnpm run dev:v
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+pnpm test
+
+# Run type checks
+pnpm run check
+```
+
+### Pull Request Guidelines
+
+1.  Create a branch for each feature or bug fix.
+2.  Add tests corresponding to your changes.
+3.  Write clear and concise commit messages.
+4.  Ensure that `pnpm test` and `pnpm run check` pass before creating a PR.
+
+---
+
+## 📝 License
+
+MIT License
