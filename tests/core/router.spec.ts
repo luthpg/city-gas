@@ -258,4 +258,163 @@ describe('Core Router', () => {
     // unknownParam は params オブジェクトに含まれていないはず
     expect(currentRoute.params).toEqual({ userId: '42' });
   });
+
+  // --- onValidateError Hook Tests ---
+
+  describe('onValidateError Hook', () => {
+    it('should call onValidateError when validation fails', async () => {
+      const onValidateError = vi.fn();
+      router = createRouter<AppRouteNames, AppRouteParams>(
+        {
+          '/items/[itemId]/edit': {
+            component: null,
+            isIndex: false,
+            schema: z.object({
+              itemId: z.string(),
+              count: z.number(), // coerceなし、厳密にnumberを要求
+            }),
+          },
+        } as any,
+        {
+          defaultRouteName: '/',
+          dynamicRoutes,
+          onValidateError,
+        },
+      );
+      await new Promise(process.nextTick);
+
+      // 直近のcreateRouterで登録されたonChangeコールバックを取得
+      // Vitest environment usually supports Array.at or we can use calls[calls.length - 1]
+      const onChangeCallback =
+        mockAdapter.onChange.mock.calls[
+          mockAdapter.onChange.mock.calls.length - 1
+        ][0];
+      // countに文字列を渡してバリデーションエラーを起こす
+      onChangeCallback('?page=/items/123/edit&count=invalid');
+
+      expect(onValidateError).toHaveBeenCalled();
+      const [error, context] = onValidateError.mock.calls[0];
+      expect(error).toBeInstanceOf(z.ZodError);
+      expect(context).toEqual({
+        name: '/items/[itemId]/edit',
+        params: expect.objectContaining({ itemId: '123', count: 'invalid' }),
+      });
+    });
+
+    it('should redirect to the returned route name (string return)', async () => {
+      router = createRouter<AppRouteNames, AppRouteParams>(
+        {
+          '/items/[itemId]/edit': {
+            component: null,
+            isIndex: false,
+            schema: z.object({
+              itemId: z.string(),
+              count: z.number(),
+            }),
+          },
+          '/': { component: null, isIndex: true },
+        } as any,
+        {
+          defaultRouteName: '/',
+          dynamicRoutes,
+          onValidateError: () => '/',
+        },
+      );
+      await new Promise(process.nextTick);
+
+      const listener = vi.fn();
+      router.subscribe(listener);
+
+      const onChangeCallback =
+        mockAdapter.onChange.mock.calls[
+          mockAdapter.onChange.mock.calls.length - 1
+        ][0];
+      onChangeCallback('?page=/items/123/edit&count=invalid');
+
+      expect(listener).toHaveBeenLastCalledWith(
+        expect.objectContaining({ name: '/' }),
+      );
+    });
+
+    it('should redirect to the returned route object (object return)', async () => {
+      router = createRouter<AppRouteNames, AppRouteParams>(
+        {
+          '/items/[itemId]/edit': {
+            component: null,
+            isIndex: false,
+            schema: z.object({
+              itemId: z.string(),
+              count: z.number(),
+            }),
+          },
+          '/users/show': {
+            component: null,
+            isIndex: false,
+            schema: z.object({ userId: z.string() }),
+          },
+        } as any,
+        {
+          defaultRouteName: '/',
+          dynamicRoutes,
+          onValidateError: () => ({
+            name: '/users/show',
+            params: { userId: 'error-fallback' },
+          }),
+        },
+      );
+      await new Promise(process.nextTick);
+
+      const listener = vi.fn();
+      router.subscribe(listener);
+
+      const onChangeCallback =
+        mockAdapter.onChange.mock.calls[
+          mockAdapter.onChange.mock.calls.length - 1
+        ][0];
+      onChangeCallback('?page=/items/123/edit&count=invalid');
+
+      expect(listener).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          name: '/users/show',
+          params: { userId: 'error-fallback' },
+        }),
+      );
+    });
+
+    it('should fallback to _404 when onValidateError returns void', async () => {
+      const onValidateError = vi.fn(); // returns undefined (void)
+      router = createRouter<AppRouteNames, AppRouteParams>(
+        {
+          '/items/[itemId]/edit': {
+            component: null,
+            isIndex: false,
+            schema: z.object({
+              itemId: z.string(),
+              count: z.number(),
+            }),
+          },
+        } as any,
+        {
+          defaultRouteName: '/',
+          dynamicRoutes,
+          onValidateError,
+        },
+      );
+      await new Promise(process.nextTick);
+
+      const listener = vi.fn();
+      router.subscribe(listener);
+
+      const onChangeCallback =
+        mockAdapter.onChange.mock.calls[
+          mockAdapter.onChange.mock.calls.length - 1
+        ][0];
+      onChangeCallback('?page=/items/123/edit&count=invalid');
+
+      expect(onValidateError).toHaveBeenCalled();
+      expect(listener).toHaveBeenLastCalledWith(
+        expect.objectContaining({ name: '_404' }),
+      );
+    });
+  });
 });

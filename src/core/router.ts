@@ -1,4 +1,4 @@
-import { type ZodType, z } from 'zod';
+import { type ZodError, type ZodType, z } from 'zod';
 import { getAdapter } from '@/env';
 import type { Register } from '@/index';
 
@@ -148,6 +148,20 @@ export function createRouter<
     specialPages?: Record<string, PageComponent>;
     defaultRouteName?: DefaultRouteName;
     dynamicRoutes?: DynamicRoute[];
+    /**
+     * バリデーションエラー発生時に呼び出されるフック
+     * - 文字列(ルート名)を返すと、そのルートへリダイレクトします (paramsは空になります)
+     * - { name, params } を返すと、指定したパラメータでリダイレクトします
+     * - void (何も返さない) 場合、デフォルトの動作（警告ログ出力 + _404へ遷移）が行われます
+     */
+    onValidateError?: (
+      error: ZodError,
+      context: { name: RouteNames; params: RouteParams[RouteNames] },
+    ) =>
+      | RouteNames
+      | { name: RouteNames; params: RouteParams[RouteNames] }
+      // biome-ignore lint/suspicious/noConfusingVoidType: use void return
+      | void;
   },
 ): Router<RouteNames, RouteParams, PageComponent> {
   const adapter = getAdapter();
@@ -211,14 +225,37 @@ export function createRouter<
         // 成功したら整形済みのデータ(余計なキーの削除含む)を採用
         params = result.data;
       } else {
-        // バリデーション失敗時は 404 へ飛ばす (または専用のエラーページでも可)
-        console.warn(
-          `[city-gas] Validation failed for route "%s". Redirecting to 404.`,
-          name,
-          result.error,
-        );
-        name = '_404';
-        params = {};
+        let handled = false;
+
+        if (options?.onValidateError) {
+          const fallback = options.onValidateError(result.error, {
+            name: name as RouteNames,
+            params,
+          });
+
+          if (typeof fallback === 'string') {
+            // ルート名のみ返された場合: 安全のため params を空にしてリダイレクト
+            name = fallback;
+            params = {};
+            handled = true;
+          } else if (typeof fallback === 'object' && fallback !== null) {
+            // オブジェクトが返された場合: name と params を指定してリダイレクト
+            name = fallback.name;
+            params = fallback.params;
+            handled = true;
+          }
+        }
+
+        if (!handled) {
+          // ハンドラが未定義、または void を返した場合はデフォルト動作
+          console.warn(
+            `[city-gas] Validation failed for route "%s". Redirecting to 404.`,
+            name,
+            result.error,
+          );
+          name = '_404';
+          params = {};
+        }
       }
     }
 
