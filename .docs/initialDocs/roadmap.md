@@ -47,5 +47,5 @@
 
 - [x] Issue: テスト - React/Vue Adapter のテスト網羅
 - [x] Issue: テスト - 統合テスト、E2E テストの拡充
-- [ ] Issue: ドキュメント - README、API リファレンス、チュートリアルの完成
-- [ ] Issue: 公開 - npm パッケージの公開
+- [x] Issue: ドキュメント - README、API リファレンス、チュートリアルの完成
+- [x] Issue: 公開 - npm パッケージの公開

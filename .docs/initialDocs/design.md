@@ -16,7 +16,7 @@
 - **フレームワーク対応**: React Hooks と Vue Composables の両方を提供
 - **環境抽象化**: GAS とブラウザの両方に対応
 - **Vite プラグイン**: ルートと params から `.d.ts` を自動生成
-- **将来的な Zod 移行を想定**
+- **Zod スキーマ対応**: `export const schema = z.object(...)` による型定義とバリデーション
 
 ---
 
@@ -65,14 +65,14 @@
 
 ## 4. DSL → TypeScript 型変換ルール
 
-### プリミティブ
+### Zod スキーマからの型推論
 
-- `"string"` → `string`
-- `"string?"` → `string | undefined`
-- `"number"` → `number`
-- `"number?"` → `number | undefined`
-- `"boolean"` → `boolean`
-- `"boolean?"` → `boolean | undefined`
+- `z.string()` → `string`
+- `z.number()` → `number`
+- `z.boolean()` → `boolean`
+- `z.object({ ... })` → `{ ... }`
+- `z.array(...)` → `...[]`
+- `z.optional()` → `... | undefined`
 
 ## 5. API 設計
 
@@ -83,6 +83,7 @@
 - `router.subscribe(listener)`
 - `router.getCurrentRoute()`
 - `router.beforeEach((to, from, next) => { ... })`: ナビゲーションガード
+- `options.onValidateError`: バリデーションエラー時のカスタムフック
 
 ### React API
 
@@ -105,7 +106,7 @@
 ## 6. Vite プラグイン設計
 
 - **入力**: `src/pages/**/*.{tsx,vue}`
-- **処理**: AST 解析で `export const params` を抽出
+- **処理**: AST 解析で `export const schema` (Zod Object) を抽出
 - **出力**: `.generated/router.d.ts`, `.generated/routes.ts`
 - **HMR 対応**: ファイル変更で型を再生成
 - **競合解決**: `pathToRouteInfo` のロジックにおいて、`index` ファイルが競合する通常ファイルより優先されるように `Map` を用いて解決する。競合発生時はコンソールに警告を表示する。
