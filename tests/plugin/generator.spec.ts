@@ -183,6 +183,41 @@ describe('Plugin Generator', () => {
     warnSpy.mockRestore();
   });
 
+  it('should prioritize user-defined schema when keys conflict with path params', async () => {
+    const rootDir = path.join(tempDir, 'conflict-priority');
+    const pagesDir = path.join(rootDir, 'src', 'pages');
+    fs.mkdirSync(pagesDir, { recursive: true });
+    fs.mkdirSync(path.join(pagesDir, 'users'), { recursive: true });
+
+    // src/pages/users/[userId].tsx
+    // Define userId as number in schema, which conflicts with default string path param
+    fs.writeFileSync(
+      path.join(pagesDir, 'users', '[userId].tsx'),
+      `export const schema = z.object({ userId: z.number() });`,
+    );
+
+    await generate(rootDir);
+
+    const typeContent = fs.readFileSync(
+      path.join(rootDir, 'src', 'generated', 'router.d.ts'),
+      'utf-8',
+    );
+
+    // Should contain route name
+    expect(typeContent).toContain('"/users/[userId]"');
+
+    // The generated type should use the user-defined type (number) for userId
+    // and NOT the default string type from path params.
+    // It should look something like: ( { userId: number } ) & Omit<{ userId: string }, keyof ( { userId: number } )>
+    // effectively making userId: number.
+
+    // We check if the type definition contains the intersection and Omit pattern
+    expect(typeContent).toContain('& Omit<{ userId: string }, keyof');
+
+    // We can also verify that it doesn't simply say "userId: string" without the Omit part if we were parsing it,
+    // but checking for the Omit structure is a good proxy for the logic being applied.
+  });
+
   describe('Cache Strategy', () => {
     const rootDir = path.join(tempDir, 'cache-strategy');
     const pagesDir = path.join(rootDir, 'src', 'pages');

@@ -4,6 +4,7 @@
 /* biome-ignore: auto generated file */
 
 import { z } from 'zod';
+import P_9f60edf7 from '../pages/_404.tsx';
 import P_04059d0a from '../pages/_root.tsx';
 import P_fffd9681 from '../pages/about.tsx';
 import P_461da086 from '../pages/config/_layout.tsx';
@@ -48,6 +49,7 @@ export const pages = {
 };
 
 export const specialPages = {
+  _404: P_9f60edf7,
   _root: P_04059d0a,
   'config/_layout': P_461da086,
   'users/_layout': P_9c055ae7,

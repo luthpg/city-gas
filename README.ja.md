@@ -139,6 +139,7 @@ export default function UserPage() {
 * **`_loading.tsx`**: ページ遷移中や初期化中に表示されるコンポーネント。
 
 **例: `src/pages/settings/_layout.tsx`**
+
 ```tsx
 // React Example
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -277,9 +278,9 @@ const handleClick = () => {
 
 * `pages`: `.generated/routes.ts` からインポートしたページ定義。
 * `options`:
-    * `specialPages`: `_root`, `_layout` などの特殊ページ定義。
-    * `dynamicRoutes`: 動的ルートのマッチング用定義。
-    * `defaultRouteName`: デフォルトのルート（通常は `'/'`）。
+  * `specialPages`: `_root`, `_layout` などの特殊ページ定義。
+  * `dynamicRoutes`: 動的ルートのマッチング用定義。
+  * `defaultRouteName`: デフォルトのルート（通常は `'/'`）。
 
 ### `router` インスタンス
 
@@ -308,6 +309,38 @@ router.beforeEach((to, from, next) => {
 * `useParams(routeName)`: 現在のルートのパラメータを取得します。引数にルート名を渡すと型が絞り込まれます。
 * `useNavigate()`: ナビゲーション関数を返します。
 * `useRoute()`: 現在のルート名とパラメータを含むオブジェクト全体を返します。
+
+---
+
+## ⚠️ 既知の制限事項
+
+### スキーマ定義
+
+パラメータの `schema` エクスポートは、ページファイル内で **インライン** で定義する必要があります。
+Vite プラグインは静的解析 (AST) を使用して型を生成するため、外部ファイルからのスキーマのインポートはサポートされていません。
+
+**❌ 非サポート:**
+
+```ts
+// src/pages/users.tsx
+import { userSchema } from '@/schemas';
+export const schema = userSchema; // ジェネレータが型を推論できません
+```
+
+**✅ サポート:**
+
+```ts
+// src/pages/users.tsx
+import { z } from 'zod';
+export const schema = z.object({
+  id: z.string(),
+});
+```
+
+### パラメータの型
+
+パスパラメータ (例: `[id]`) は、デフォルトでは文字列として扱われます。
+スキーマ内でパスパラメータを別の型 (例: `z.number()`) として定義する場合は、URL からの生の値は文字列であるため、`z.coerce.number()` などの変換を使用してください。
 
 ---
 
@@ -353,10 +386,10 @@ pnpm run check
 
 ### Pull Request のガイドライン
 
-1.  機能追加やバグ修正ごとにブランチを作成してください。
-2.  変更内容に対応するテストを追加してください。
-3.  コミットメッセージは明確に記述してください。
-4.  PRを作成する前に `pnpm test` と `pnpm run check` がパスすることを確認してください。
+1. 機能追加やバグ修正ごとにブランチを作成してください。
+2. 変更内容に対応するテストを追加してください。
+3. コミットメッセージは明確に記述してください。
+4. PRを作成する前に `pnpm test` と `pnpm run check` がパスすることを確認してください。
 
 ---
 

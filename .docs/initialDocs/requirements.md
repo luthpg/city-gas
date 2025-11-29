@@ -9,7 +9,7 @@
 
 - **ファイルベースルーティング**: `src/pages/` 以下のファイル構造をルートに変換
 - **ネストされたルート (レイアウト機能)**: `_layout.tsx` による共通レイアウト、`_root.tsx` によるルート提示、`_404.tsx` による見つからないページのフォールバック
-- **柔軟 params DSL / Zod対応**: ページごとに `export const params = { ... }` を宣言し、必須/任意、enum、配列、ネストオブジェクトを表現可能
+- ~~柔軟 params DSL~~ / **Zod対応**: ページごとに `export const schema = z.object({ ... })` を宣言し、Zod スキーマを利用して型定義とバリデーションを行う
 - **型安全なパスパラメータ**: 動的ルートのパスパラメータも型付けされ、フックで取得可能
 - **型安全な navigate**: `router.navigate("pageName", params)` が IDE 補完され、型エラーを防止
 - **ナビゲーションガード**: 認証状態のチェックや、フォームの未保存データを警告するなど、ルート遷移を制御する仕組み
@@ -26,7 +26,7 @@
 - 柔軟 DSL による型安全な params 定義
 - GAS 環境に最適化されたクエリ駆動ルーティング (`?page=...` を使用。`page=index` やパラメータなしはルートとして解釈)
 - Vite プラグインによる DX 向上 (型自動生成)
-- 将来的に Zod を導入可能な拡張性を確保
+- Zod を利用した堅牢なバリデーション
 
 ---
 
@@ -79,22 +79,18 @@ export interface RouteParams {
 
 ## 柔軟 DSL の仕様
 
-### サポートする型表現
+### サポートする型表現 (Zod)
 
-- `"string"` / `"string?"`
-- `"number"` / `"number?"`
-- `"boolean"` / `"boolean?"`
-- `{ type: "enum", values: string[], optional?: boolean }`
-- `{ type: "array", items: DSL, optional?: boolean }`
-- `{ type: "object", shape: Record<string, DSL>, optional?: boolean }`
-
-### ページファイル例
+Zod スキーマを使用してパラメータを定義します。
 
 ```tsx
 // src/pages/users/show.tsx
-export const params = {
-  userId: "string",
-};
+import { z } from 'zod';
+
+export const schema = z.object({
+  userId: z.string(),
+  page: z.coerce.number().optional(),
+});
 
 export default function UserShowPage({ userId }: { userId: string }) {
   return <div>User ID: {userId}</div>;
@@ -109,6 +105,7 @@ export default function UserShowPage({ userId }: { userId: string }) {
 
 - `createRouter<R, P>(pages, options)`: ルーターインスタンスを生成
 - `router.beforeEach((to, from, next) => { ... })`: ナビゲーションガードを登録
+- `options.onValidateError`: バリデーションエラー時のカスタムフック
 
 ### React
 
@@ -213,6 +210,20 @@ router.beforeEach((to, from, next) => {
 - params 不一致 → TypeScript コンパイルエラー
 - DSL が不正 → ビルドエラー
 - ルート競合（`index` 優先）→ コンソールに警告 (warn) を出力
+
+---
+
+## ⚠️ 既知の制限事項 (Known Limitations)
+
+### スキーマ定義
+
+パラメータの `schema` エクスポートは、ページファイル内で **インライン** で定義する必要があります。
+Vite プラグインは静的解析 (AST) を使用して型を生成するため、外部ファイルからのスキーマのインポートはサポートされていません。
+
+### パラメータの型
+
+パスパラメータ (例: `[id]`) は、デフォルトでは文字列として扱われます。
+スキーマ内でパスパラメータを別の型 (例: `z.number()`) として定義する場合は、URL からの生の値は文字列であるため、`z.coerce.number()` などの変換を使用してください。
 
 ---
 

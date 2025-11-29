@@ -310,6 +310,38 @@ router.beforeEach((to, from, next) => {
 
 ---
 
+## ⚠️ Known Limitations
+
+### Schema Definition
+
+The `schema` export for parameters must be defined **inline** within the page file.
+Importing schemas from external files is not supported because the Vite plugin uses static AST analysis to generate types.
+
+**❌ NOT Supported:**
+
+```ts
+// src/pages/users.tsx
+import { userSchema } from '@/schemas';
+export const schema = userSchema; // The generator cannot infer the type
+```
+
+**✅ Supported:**
+
+```ts
+// src/pages/users.tsx
+import { z } from 'zod';
+export const schema = z.object({
+  id: z.string(),
+});
+```
+
+### Parameter Types
+
+Path parameters (e.g., [id]) are treated as string in default behavior.
+If you define a path parameter in your schema with a different type (e.g., z.number()), ensure you use z.coerce.number() or similar transformations, as the raw value from the URL is a string.
+
+---
+
 ## 🤝 Contribution Guide
 
 Thank you for considering contributing to `city-gas`!

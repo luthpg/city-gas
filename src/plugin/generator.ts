@@ -9,6 +9,7 @@ import { zodToTs } from '@/plugin/zodToTs';
 interface FileCacheEntry {
   schemaType: string; // TSの型定義文字列 (例: "{ tab?: string | undefined }")
   hasSchema: boolean; // export const schema が存在するか
+  definedKeys: string[]; // ユーザーが定義したキーのリスト
   mtimeMs: number;
 }
 
@@ -29,12 +30,50 @@ function getPathParams(routeName: string): string[] {
 }
 
 /**
+ * Zod定義からキーのリストを抽出する
+ * z.object({ key: ... }) の 'key' を収集
+ */
+function getZodObjectKeys(
+  node: ts.Expression,
+  sourceFile: ts.SourceFile,
+): string[] {
+  const keys: string[] = [];
+
+  function visit(n: ts.Node) {
+    // z.object({ ... }) の形を探す
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
+      const methodName = n.expression.name.text;
+      if (methodName === 'object' && n.arguments.length > 0) {
+        const arg = n.arguments[0];
+        if (ts.isObjectLiteralExpression(arg)) {
+          for (const prop of arg.properties) {
+            if (
+              ts.isPropertyAssignment(prop) ||
+              ts.isShorthandPropertyAssignment(prop)
+            ) {
+              keys.push(prop.name.getText(sourceFile));
+            }
+          }
+        }
+      }
+    }
+    // チェーンメソッド (e.g. z.object({...}).optional()) の場合、内側を探索
+    if (ts.isCallExpression(n)) {
+      visit(n.expression);
+    }
+  }
+
+  visit(node);
+  return keys;
+}
+
+/**
  * TS/TSX コンテンツから export const schema を解析する
  */
 function extractSchemaFromTs(
   filePath: string,
   content: string,
-): { schemaType: string; hasSchema: boolean } {
+): { schemaType: string; hasSchema: boolean; definedKeys: string[] } {
   const sourceFile = ts.createSourceFile(
     filePath,
     content,
@@ -66,10 +105,11 @@ function extractSchemaFromTs(
   if (schemaNode) {
     // zodToTs を使って型文字列に変換
     const typeStr = zodToTs(schemaNode, sourceFile);
-    return { schemaType: typeStr, hasSchema: true };
+    const definedKeys = getZodObjectKeys(schemaNode, sourceFile);
+    return { schemaType: typeStr, hasSchema: true, definedKeys };
   }
 
-  return { schemaType: '{}', hasSchema: false };
+  return { schemaType: '{}', hasSchema: false, definedKeys: [] };
 }
 
 /**
@@ -78,6 +118,7 @@ function extractSchemaFromTs(
 function extractSchema(filePath: string): {
   schemaType: string;
   hasSchema: boolean;
+  definedKeys: string[];
 } {
   const content = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.vue')) {
@@ -91,7 +132,7 @@ function extractSchema(filePath: string): {
     if (scriptContent) {
       return extractSchemaFromTs(filePath, scriptContent);
     }
-    return { schemaType: '{}', hasSchema: false };
+    return { schemaType: '{}', hasSchema: false, definedKeys: [] };
   }
 
   return extractSchemaFromTs(filePath, content);
@@ -140,7 +181,7 @@ function generateTypeContent(routes: { name: string; schemaType: string }[]) {
         if (finalType === '{}') {
           finalType = pathParamsType;
         } else {
-          finalType = `(${finalType}) & ${pathParamsType}`;
+          finalType = `(${finalType}) & Omit<${pathParamsType}, keyof (${finalType})>`;
         }
       }
 
@@ -182,6 +223,7 @@ function generateRoutesContent(
     name: string;
     isIndex: boolean;
     hasSchema: boolean;
+    definedKeys: string[];
   }[],
   specialRoutes: { path: string; name: string }[],
 ) {
@@ -224,26 +266,19 @@ function generateRoutesContent(
         schemaExpression = `S_${hash}`;
       }
 
-      // パスパラメータのZod定義を生成
-      if (pathParams.length > 0) {
-        // 例: .and(z.object({ userId: z.string() }))
-        const pathSchemaObj = pathParams
+      const missingPathParams = pathParams.filter(
+        (p) => !r.definedKeys.includes(p),
+      );
+
+      if (missingPathParams.length > 0) {
+        const pathSchemaObj = missingPathParams
           .map((p) => `${p}: z.string()`)
           .join(', ');
-        // 既存スキーマがz.object以外の可能性(z.unionなど)も考慮し、.and(Intersection)を使用
-        // ※ ユーザー定義がない場合は z.object({}) なので .extend() でも良いが、
-        //    ユーザー定義がある場合は .and() が安全
         schemaExpression = `(${schemaExpression}).and(z.object({ ${pathSchemaObj} }))`;
-      } else if (!r.hasSchema) {
-        // スキーマもパスパラメータもない場合は undefined (最適化)
-        // ただしRouter側でundefinedチェックが必要。ここでは一貫性のため z.object({}) を渡すか、
-        // もしくは router.ts 側で fallback するなら undefined にする。
-        // -> 今回は生成コード側で明示的に渡す方針にする
-        schemaExpression = `z.object({})`;
       }
 
-      return `  ${JSON.stringify(r.name)}: { 
-    component: P_${hash}, 
+      return `  ${JSON.stringify(r.name)}: {
+    component: P_${hash},
     isIndex: ${r.isIndex},
     schema: ${schemaExpression}
   },`;
@@ -360,6 +395,7 @@ function flushFiles(rootDir: string) {
         isIndex: info.isIndex,
         schemaType: entry?.schemaType || '{}',
         hasSchema: entry?.hasSchema || false,
+        definedKeys: entry?.definedKeys || [],
       };
     })
     .sort((a, b) => a.path.localeCompare(b.path));
@@ -410,12 +446,13 @@ export async function updateFile(filePath: string, rootDir: string) {
     }
 
     // スキーマ抽出 (Zod解析)
-    const { schemaType, hasSchema } = extractSchema(filePath);
+    const { schemaType, hasSchema, definedKeys } = extractSchema(filePath);
 
     fileCache.set(normalizedPath, {
       schemaType,
       hasSchema,
       mtimeMs,
+      definedKeys,
     });
 
     flushFiles(rootDir);
@@ -453,11 +490,12 @@ export async function generate(
   for (const file of allFiles) {
     try {
       const stat = fs.statSync(file);
-      const { schemaType, hasSchema } = extractSchema(file);
+      const { schemaType, hasSchema, definedKeys } = extractSchema(file);
       fileCache.set(file, {
         schemaType,
         hasSchema,
         mtimeMs: stat.mtimeMs,
+        definedKeys,
       });
     } catch (e) {
       console.warn(`[city-gas] Failed to parse ${file} during init:`, e);
