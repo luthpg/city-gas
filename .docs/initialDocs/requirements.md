@@ -77,9 +77,7 @@ export interface RouteParams {
 
 ---
 
-## 柔軟 DSL の仕様
-
-### サポートする型表現 (Zod)
+## Zod スキーマの仕様
 
 Zod スキーマを使用してパラメータを定義します。
 
@@ -193,13 +191,6 @@ router.beforeEach((to, from, next) => {
 - HMR時のパフォーマンス最適化（ファイルI/O削減）:
   - 変更のないファイルのAST解析をスキップするため、ファイルキャッシュ（mtime, 解析結果）を導入する。
   - 生成される型定義やルートマップの内容が前回と同一の場合、ファイル書き込み（writeFileSync）をスキップする。
-
-### 変換ロジック (再帰)
-
-- プリミティブ: `"string" → string`, `"string?" → string | undefined`
-- enum: `values` を union 型に展開
-- array: `items` を再帰的に展開し `T[]`
-- object: `shape` を再帰的に展開し `{ ... }`
 
 ---
 

@@ -42,8 +42,8 @@
 ## Vite Plugin
 
 - [x] **ページ探索**: `src/pages/**/*.{tsx,vue}` を `fast-glob` で探索
-- [x] **AST 解析**: `export const params` を `typescript` で解析・抽出
-- [x] **DSL → TS 型変換**: `dslToTs` 再帰関数による型定義文字列の生成
+- [x] **AST 解析**: `export const schema` を `ts-morph` で解析・抽出
+- [x] **Zod → TS 型変換**: `zodToTs` 関数による型定義文字列の生成
 - [x] **型ファイル生成**: `router.d.ts` と `routes.ts` を生成・書き出し
 - [x] **HMR 対応**: ファイル変更を監視し、型ファイルを即時再生成
 - [x] **動的パスパラメータ**: `[param].tsx` などのパスパラメータを解析し、型生成に統合
