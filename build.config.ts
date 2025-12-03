@@ -32,7 +32,7 @@ export default defineBuildConfig({
   externals: [
     'vite',
     'fast-glob',
-    'typescript',
+    'ts-morph',
     'react',
     'react-dom',
     'vue',

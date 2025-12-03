@@ -1,4 +1,11 @@
-import ts from 'typescript';
+import {
+  type ArrayLiteralExpression,
+  type Expression,
+  type Identifier,
+  Node,
+  type ObjectLiteralExpression,
+  SyntaxKind,
+} from 'ts-morph';
 
 interface ZodMeta {
   type: string;
@@ -6,33 +13,30 @@ interface ZodMeta {
   isNullable: boolean;
 }
 
+function getNodeKey(node: Node): string {
+  return `${node.getSourceFile().getFilePath()}:${node.getPos()}:${node.getEnd()}`;
+}
+
 /**
- * ZodのASTノードを解析してTypeScriptの型定義文字列に変換する
+ * ZodのASTノードを解析してTypeScriptの型定義文字列に変換する (エントリーポイント)
  */
-export function zodToTs(
-  node: ts.Expression,
-  sourceFile: ts.SourceFile,
-): string {
-  const meta = parseZodNode(node, sourceFile);
+export function zodToTs(node: Expression, seen?: Set<string>): string {
+  // 再帰呼び出しでない場合、seenセットを初期化
+  const seenInScope = seen ?? new Set<string>();
+  const meta = parseZodNode(node, seenInScope);
 
   let typeStr = meta.type;
 
-  // 入力用型定義(navigateの引数)としては、nullableは | null とする
+  // nullableは | null とする
   if (meta.isNullable) {
-    if (typeStr === 'any' || typeStr === 'unknown') {
-      // any | null は any なので何もしない
-    } else {
+    if (typeStr !== 'any' && typeStr !== 'unknown') {
       typeStr = `${typeStr} | null`;
     }
   }
 
-  // optional または default() が指定されている場合は | undefined を付与
+  // optional または default() は | undefined を付与
   if (meta.isOptional) {
-    if (typeStr === 'any' || typeStr === 'unknown') {
-      // any | undefined は any
-    } else {
-      // 既にユニオン型の場合は括弧をつけるなどの考慮も可能だが、
-      // TSは `string | number | undefined` を正しく解釈するためそのまま結合
+    if (typeStr !== 'any' && typeStr !== 'unknown') {
       typeStr = `${typeStr} | undefined`;
     }
   }
@@ -43,115 +47,82 @@ export function zodToTs(
 /**
  * 再帰的にZodチェーンを解析するコアロジック
  */
-function parseZodNode(node: ts.Expression, sourceFile: ts.SourceFile): ZodMeta {
-  // デフォルト: 解析不能なものは any とする
+function parseZodNode(node: Node, seen: Set<string>): ZodMeta {
+  const key = getNodeKey(node);
+  if (seen.has(key)) {
+    return { type: 'any', isOptional: false, isNullable: false };
+  }
+  seen.add(key);
+
   const meta: ZodMeta = {
     type: 'any',
     isOptional: false,
     isNullable: false,
   };
 
-  // 1. CallExpression (例: z.string(), .optional(), .min())
-  if (ts.isCallExpression(node)) {
-    const { expression, arguments: args } = node;
+  // 1. CallExpression (例: z.string(), .optional())
+  if (Node.isCallExpression(node)) {
+    const expression = node.getExpression();
+    const args = node.getArguments();
 
-    // プロパティアクセス (例: z.string(), thing.optional())
-    if (ts.isPropertyAccessExpression(expression)) {
-      const methodName = expression.name.text;
+    if (Node.isPropertyAccessExpression(expression)) {
+      const methodName = expression.getName();
+      const innerExpression = expression.getExpression();
 
       // --- Modifiers (型修飾) ---
       if (methodName === 'optional') {
-        const innerMeta = parseZodNode(expression.expression, sourceFile);
-        return { ...innerMeta, isOptional: true };
+        return { ...parseZodNode(innerExpression, seen), isOptional: true };
       }
       if (methodName === 'nullable') {
-        const innerMeta = parseZodNode(expression.expression, sourceFile);
-        return { ...innerMeta, isNullable: true };
+        return { ...parseZodNode(innerExpression, seen), isNullable: true };
       }
       if (methodName === 'nullish') {
-        const innerMeta = parseZodNode(expression.expression, sourceFile);
-        return { ...innerMeta, isOptional: true, isNullable: true };
+        return {
+          ...parseZodNode(innerExpression, seen),
+          isOptional: true,
+          isNullable: true,
+        };
       }
       if (methodName === 'default') {
-        // default値がある場合、入力(navigate)としては省略可能
-        const innerMeta = parseZodNode(expression.expression, sourceFile);
-        return { ...innerMeta, isOptional: true };
+        return { ...parseZodNode(innerExpression, seen), isOptional: true };
       }
 
       // --- Collections (配列) ---
       if (methodName === 'array') {
-        // パターンA: z.array(z.string()) -> 引数を見る
-        // 修正点: 'z' が Identifier であるケース (通常) と PropertyAccess であるケース (名前空間など) 両方をチェック
-        const isZIdentifier =
-          ts.isIdentifier(expression.expression) &&
-          expression.expression.text === 'z';
-        const isZProperty =
-          ts.isPropertyAccessExpression(expression.expression) &&
-          expression.expression.name.text === 'z';
-
-        if (isZIdentifier || isZProperty) {
-          // z.array() の呼び出しとみなす
-          if (args.length > 0) {
-            const itemType = zodToTs(args[0], sourceFile);
-            return { ...meta, type: `${wrapUnion(itemType)}[]` };
-          }
-          return { ...meta, type: 'any[]' };
+        // z.array(z.string())
+        if (args.length > 0) {
+          const itemType = zodToTs(args[0] as Expression, seen);
+          return { ...meta, type: `${wrapUnion(itemType)}[]` };
         }
-
-        // パターンB: z.string().array() -> チェーン元の型を配列化
-        // 呼び出し元が 'z' そのものでない場合はメソッドチェーンとみなす
-        const innerMeta = parseZodNode(expression.expression, sourceFile);
-
-        let innerType = innerMeta.type;
-        if (innerMeta.isNullable) innerType += ' | null';
-        if (innerMeta.isOptional) innerType += ' | undefined';
-
-        return {
-          type: `${wrapUnion(innerType)}[]`,
-          isOptional: false, // .array() した時点で直前のoptionalはリセットされる(配列自体は必須になる)
-          isNullable: false,
-        };
+        // z.string().array()
+        if (
+          Node.isPropertyAccessExpression(innerExpression) ||
+          Node.isCallExpression(innerExpression)
+        ) {
+          const innerMeta = parseZodNode(innerExpression, seen);
+          let innerType = innerMeta.type;
+          if (innerMeta.isNullable) innerType += ' | null';
+          if (innerMeta.isOptional) innerType += ' | undefined';
+          return {
+            type: `${wrapUnion(innerType)}[]`,
+            isOptional: false,
+            isNullable: false,
+          };
+        }
+        return { ...meta, type: 'any[]' };
       }
 
       // --- Primitives & Creators ---
-      // z.string(), z.coerce.number() などを判定
-
-      // バリデーションメソッド (これらは型を変えないのでスキップして内側へ)
       const validationMethods = new Set([
-        'min',
-        'max',
-        'length',
-        'email',
-        'url',
-        'uuid',
-        'cuid',
-        'cuid2',
-        'ulid',
-        'regex',
-        'includes',
-        'startsWith',
-        'endsWith',
-        'datetime',
-        'ip',
-        'trim',
-        'toLowerCase',
-        'toUpperCase',
-        'refine',
-        'superRefine',
-        'transform',
-        'catch',
-        'describe',
-        'brand',
-        'readonly',
+        'min', 'max', 'length', 'email', 'url', 'uuid', 'cuid', 'cuid2', 'ulid',
+        'regex', 'includes', 'startsWith', 'endsWith', 'datetime', 'ip', 'trim',
+        'toLowerCase', 'toUpperCase', 'refine', 'superRefine', 'transform',
+        'catch', 'describe', 'brand', 'readonly',
       ]);
 
       if (validationMethods.has(methodName)) {
-        // 型には影響しないので、内側(expression.expression)の結果をそのまま返す
-        return parseZodNode(expression.expression, sourceFile);
+        return parseZodNode(innerExpression, seen);
       }
-
-      // ここから下は "Base Types" の生成
-      // z.string() や z.coerce.string() などを想定
 
       switch (methodName) {
         case 'string':
@@ -166,73 +137,64 @@ function parseZodNode(node: ts.Expression, sourceFile: ts.SourceFile): ZodMeta {
         case 'unknown':
         case 'never':
           return { ...meta, type: methodName };
-
         case 'null':
           return { ...meta, type: 'null' };
-
         case 'literal':
-          if (args.length > 0) {
-            return { ...meta, type: getLiteralText(args[0], sourceFile) };
-          }
-          return { ...meta, type: 'any' };
-
+          return args.length > 0
+            ? { ...meta, type: getLiteralText(args[0]) }
+            : { ...meta, type: 'any' };
         case 'enum':
-          if (args.length > 0 && ts.isArrayLiteralExpression(args[0])) {
-            const elements = args[0].elements.map((e) =>
-              getLiteralText(e, sourceFile),
-            );
+          if (args.length > 0 && Node.isArrayLiteralExpression(args[0])) {
+            const elements = (args[0] as ArrayLiteralExpression)
+              .getElements()
+              .map((e) => getLiteralText(e));
             return { ...meta, type: elements.join(' | ') };
           }
           return { ...meta, type: 'string' }; // Fallback
-
         case 'nativeEnum':
-          // z.nativeEnum(MyEnum) -> TypeScriptでは Enum名 を使うのが理想だが
-          // ファイルまたぎのimport解決が困難なため、ここでは一旦 'string | number' などの広めの型か
-          // 可能なら識別子名を使う
-          if (args.length > 0 && ts.isIdentifier(args[0])) {
-            return { ...meta, type: args[0].getText(sourceFile) };
+          if (args.length > 0 && Node.isIdentifier(args[0])) {
+            return { ...meta, type: (args[0] as Identifier).getText() };
           }
           return { ...meta, type: 'string | number' };
-
         case 'object':
-          if (args.length > 0 && ts.isObjectLiteralExpression(args[0])) {
-            return { ...meta, type: parseZodObject(args[0], sourceFile) };
+          if (args.length > 0 && Node.isObjectLiteralExpression(args[0])) {
+            return {
+              ...meta,
+              type: parseZodObject(args[0] as ObjectLiteralExpression, seen),
+            };
           }
           return { ...meta, type: '{}' };
-
         case 'record':
-          // z.record(ValueType) or z.record(KeyType, ValueType)
           if (args.length === 1) {
-            const valType = zodToTs(args[0], sourceFile);
+            const valType = zodToTs(args[0] as Expression, seen);
             return { ...meta, type: `Record<string, ${valType}>` };
           } else if (args.length === 2) {
-            const keyType = zodToTs(args[0], sourceFile);
-            const valType = zodToTs(args[1], sourceFile);
+            const keyType = zodToTs(args[0] as Expression, seen);
+            const valType = zodToTs(args[1] as Expression, seen);
             return { ...meta, type: `Record<${keyType}, ${valType}>` };
           }
           return { ...meta, type: 'Record<string, any>' };
-
         case 'tuple':
-          if (args.length > 0 && ts.isArrayLiteralExpression(args[0])) {
-            const types = args[0].elements.map((e) => zodToTs(e, sourceFile));
+          if (args.length > 0 && Node.isArrayLiteralExpression(args[0])) {
+            const types = (args[0] as ArrayLiteralExpression)
+              .getElements()
+              .map((e) => zodToTs(e as Expression, seen));
             return { ...meta, type: `[${types.join(', ')}]` };
           }
           return { ...meta, type: '[]' };
 
         case 'union':
-          // z.union([z.string(), z.number()])
-          if (args.length > 0 && ts.isArrayLiteralExpression(args[0])) {
-            const types = args[0].elements.map((e) => zodToTs(e, sourceFile));
-            // 重複排除等はしていない
+          if (args.length > 0 && Node.isArrayLiteralExpression(args[0])) {
+            const types = (args[0] as ArrayLiteralExpression)
+              .getElements()
+              .map((e) => zodToTs(e as Expression, seen));
             return { ...meta, type: types.join(' | ') };
           }
           return { ...meta, type: 'any' };
-
         case 'intersection':
-          // .intersection() method chain is tricky, usually z.intersection(a, b)
           if (args.length === 2) {
-            const left = zodToTs(args[0], sourceFile);
-            const right = zodToTs(args[1], sourceFile);
+            const left = zodToTs(args[0] as Expression, seen);
+            const right = zodToTs(args[1] as Expression, seen);
             return {
               ...meta,
               type: `${wrapUnion(left)} & ${wrapUnion(right)}`,
@@ -240,29 +202,22 @@ function parseZodNode(node: ts.Expression, sourceFile: ts.SourceFile): ZodMeta {
           }
           break;
       }
-
-      // coerce.number() のようなケース
-      // expression.expression (z.coerce) を見て判定したいが
-      // 単純に末尾メソッド名が 'number' 等であれば上で拾っている
-      // z.coerce.number() -> PropertyAccess(expression=z.coerce, name=number)
-      // 上記switch文でカバーされているため、ここには到達しないはず。
-
-      // 未知のメソッドの場合、とりあえず内側を解析してみる (カスタムメソッド等の可能性)
-      return parseZodNode(expression.expression, sourceFile);
+      return parseZodNode(innerExpression, seen);
     }
   }
 
-  // 2. Identifier (変数参照など: 例 schema)
-  // 外部変数の解決は困難なため、anyフォールバックするか、変数名をそのまま型として出力する
-  if (ts.isIdentifier(node)) {
-    // 例: const mySchema = ...; z.object({ f: mySchema })
-    // 型定義上で "mySchema" と出力しても、d.tsにその定義がないとエラーになる。
-    // 安全のため any とする
-    return { ...meta, type: 'any' };
-  }
+  // 2. Identifier (変数参照)
+  if (Node.isIdentifier(node)) {
+    const symbol = node.getSymbol();
+    const declaration = symbol?.getValueDeclaration();
 
-  // 3. ObjectLiteral (z.object({...}) ではなく、単なるオブジェクトが渡された場合など)
-  // 基本的にZod定義内では発生しないはずだが、設定オブジェクト等の可能性あり
+    if (declaration && Node.isVariableDeclaration(declaration)) {
+      const initializer = declaration.getInitializer();
+      if (initializer) {
+        return parseZodNode(initializer, seen);
+      }
+    }
+  }
 
   return meta;
 }
@@ -270,38 +225,26 @@ function parseZodNode(node: ts.Expression, sourceFile: ts.SourceFile): ZodMeta {
 /**
  * z.object({ ... }) の中身を解析
  */
-function parseZodObject(
-  node: ts.ObjectLiteralExpression,
-  sourceFile: ts.SourceFile,
-): string {
+function parseZodObject(node: ObjectLiteralExpression, seen: Set<string>): string {
   const props: string[] = [];
 
-  for (const prop of node.properties) {
-    if (ts.isPropertyAssignment(prop)) {
-      const name = prop.name.getText(sourceFile);
-      const valueNode = prop.initializer;
+  for (const prop of node.getProperties()) {
+    if (Node.isPropertyAssignment(prop)) {
+      const name = prop.getName();
+      const valueNode = prop.getInitializer();
 
-      const meta = parseZodNode(valueNode, sourceFile);
+      if (valueNode) {
+        const meta = parseZodNode(valueNode, seen);
+        const isOptionalProp = meta.isOptional;
+        let typeStr = meta.type;
 
-      // プロパティ修飾子 (?) の判定
-      // optional または default がある場合は ? をつける
-      const isOptionalProp = meta.isOptional;
+        if (meta.isNullable) {
+          if (typeStr !== 'any') typeStr += ' | null';
+        }
 
-      let typeStr = meta.type;
-
-      // Nullable対応
-      if (meta.isNullable) {
-        if (typeStr !== 'any') typeStr += ' | null';
+        const separator = isOptionalProp ? '?:' : ':';
+        props.push(`${name}${separator} ${typeStr}`);
       }
-
-      // 値定義としての undefined 対応 (optionalなら値としてundefinedを取りうる)
-      // ただし、プロパティ修飾子(?)があれば型定義上の | undefined は必須ではないが、
-      // 明示的につけておくのが安全
-      /* if (isOptionalProp && typeStr !== 'any') typeStr += ' | undefined'; */
-      // -> コメントアウト: TypeScriptでは `key?: T` は `key: T | undefined` を含意するため冗長記述を避ける
-
-      const separator = isOptionalProp ? '?:' : ':';
-      props.push(`${name}${separator} ${typeStr}`);
     }
   }
 
@@ -312,18 +255,18 @@ function parseZodObject(
 /**
  * Helper: リテラル値のテキスト取得
  */
-function getLiteralText(node: ts.Node, sourceFile: ts.SourceFile): string {
-  if (ts.isStringLiteral(node)) {
-    return `"${node.text}"`;
+function getLiteralText(node: Node): string {
+  if (Node.isStringLiteral(node)) {
+    return `"${node.getLiteralValue()}"`;
   }
-  if (ts.isNumericLiteral(node)) {
-    return node.text;
+  if (Node.isNumericLiteral(node)) {
+    return node.getLiteralText();
   }
-  if (node.kind === ts.SyntaxKind.TrueKeyword) return 'true';
-  if (node.kind === ts.SyntaxKind.FalseKeyword) return 'false';
-  if (node.kind === ts.SyntaxKind.NullKeyword) return 'null';
+  if (node.getKind() === SyntaxKind.TrueKeyword) return 'true';
+  if (node.getKind() === SyntaxKind.FalseKeyword) return 'false';
+  if (node.getKind() === SyntaxKind.NullKeyword) return 'null';
 
-  return node.getText(sourceFile); // Fallback (変数参照など)
+  return node.getText(); // Fallback
 }
 
 /**
@@ -331,8 +274,6 @@ function getLiteralText(node: ts.Node, sourceFile: ts.SourceFile): string {
  */
 function wrapUnion(type: string): string {
   if (type.includes('|') || type.includes('&')) {
-    // オブジェクト型 { ... } は括弧不要だが、判定が面倒なので
-    // 先頭が { でなければ囲む、程度にする
     if (!type.trim().startsWith('{')) {
       return `(${type})`;
     }

@@ -9,14 +9,13 @@
 
 - **ファイルベースルーティング**: `src/pages/` 以下の構造をルートに変換
 - **ネストされたルート (レイアウト機能)**: `_layout.tsx` による共通レイアウト、`_root.tsx` によるルート提示、`_404.tsx` による見つからないページのフォールバック
-- **柔軟 params DSL**: ページごとに `params` を宣言し、必須/任意、enum、配列、ネストオブジェクトを表現可能
+- **Zod スキーマ対応**: `export const schema = z.object(...)` による型定義とバリデーション
 - **型安全なパスパラメータ**: 動的ルートのパスパラメータも型付けされ、フックで取得可能
 - **型安全な navigate**: `router.navigate("pageName", params)` が IDE 補完される
 - **ナビゲーションガード**: 認証状態のチェックや、フォームの未保存データを警告するなど、ルート遷移を制御する仕組み
 - **フレームワーク対応**: React Hooks と Vue Composables の両方を提供
 - **環境抽象化**: GAS とブラウザの両方に対応
-- **Vite プラグイン**: ルートと params から `.d.ts` を自動生成
-- **Zod スキーマ対応**: `export const schema = z.object(...)` による型定義とバリデーション
+- **Vite プラグイン**: ルートと Zod スキーマから `.d.ts` を自動生成
 
 ---
 
@@ -36,7 +35,7 @@
   - Browser Adapter: `window.location`, `window.history`
 - **Vite Plugin**
   - `src/pages/**/*.{tsx,vue}` を探索
-  - `params` DSL と動的パスパラメータを解析し、型定義 (`.generated/router.d.ts`) を生成
+  - `export const schema` (Zod スキーマ) を解析し、型定義 (`.generated/router.d.ts`) を生成
   - ルートとコンポーネントのマッピング情報 (`.generated/routes.ts`) を生成
   - ルート競合の解決: `index` ファイル（例: `test/index.tsx`）を通常ファイル（例: `test.tsx`）より優先する。
   - HMR キャッシュ: ファイルI/OとAST解析を最小限にするため、インメモリキャッシュ（ファイル最終更新日時、解析結果）を保持する。
@@ -49,8 +48,8 @@
 ## 3. データフロー
 
 1. **開発時**
-   - 開発者が `src/pages/xxx.tsx` または `xxx.vue` に `params` DSL を定義
-   - Vite プラグインが DSL とファイル構造を解析し、`.generated/router.d.ts` (型) と `.generated/routes.ts` (コンポーネントマップ) を生成
+   - 開発者が `src/pages/xxx.tsx` または `xxx.vue` に `export const schema` (Zod スキーマ) を定義
+   - Vite プラグインがスキーマとファイル構造を解析し、`.generated/router.d.ts` (型) と `.generated/routes.ts` (コンポーネントマップ) を生成
    - IDE 補完が有効化される
 
 2. **実行時**
@@ -63,7 +62,7 @@
 
 ---
 
-## 4. DSL → TypeScript 型変換ルール
+## 4. Zod スキーマ → TypeScript 型変換ルール
 
 ### Zod スキーマからの型推論
 
@@ -158,8 +157,8 @@ src/
 │   ├─ gas.ts           # GAS Adapter
 │   └─ index.ts         # Adapter 切替
 ├─ plugin/
-│   ├─ dslToTs.ts       # DSL → TS 型変換
 │   ├─ generator.ts     # 型ファイル生成ロジック
+│   ├─ zodToTs.ts       # Zod → TS 型変換
 │   └─ index.ts         # Vite プラグインエントリ
 └─ index.ts             # ライブラリエントリ
 ```

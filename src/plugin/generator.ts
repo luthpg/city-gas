@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@vue/compiler-sfc';
 import fg from 'fast-glob';
-import ts from 'typescript';
+import { Expression, Node, Project } from 'ts-morph';
 import { zodToTs } from '@/plugin/zodToTs';
 
 interface FileCacheEntry {
@@ -18,6 +18,7 @@ const contentCache = {
   dts: '',
   routes: '',
 };
+const project = new Project();
 
 /**
  * ファイルパスからパスパラメータを抽出
@@ -33,33 +34,30 @@ function getPathParams(routeName: string): string[] {
  * Zod定義からキーのリストを抽出する
  * z.object({ key: ... }) の 'key' を収集
  */
-function getZodObjectKeys(
-  node: ts.Expression,
-  sourceFile: ts.SourceFile,
-): string[] {
+function getZodObjectKeys(node: Expression): string[] {
   const keys: string[] = [];
 
-  function visit(n: ts.Node) {
-    // z.object({ ... }) の形を探す
-    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)) {
-      const methodName = n.expression.name.text;
-      if (methodName === 'object' && n.arguments.length > 0) {
-        const arg = n.arguments[0];
-        if (ts.isObjectLiteralExpression(arg)) {
-          for (const prop of arg.properties) {
+  function visit(n: Node) {
+    if (Node.isCallExpression(n)) {
+      const expr = n.getExpression();
+      if (
+        Node.isPropertyAccessExpression(expr) &&
+        expr.getName() === 'object'
+      ) {
+        const arg = n.getArguments()[0];
+        if (arg && Node.isObjectLiteralExpression(arg)) {
+          for (const prop of arg.getProperties()) {
             if (
-              ts.isPropertyAssignment(prop) ||
-              ts.isShorthandPropertyAssignment(prop)
+              Node.isPropertyAssignment(prop) ||
+              Node.isShorthandPropertyAssignment(prop)
             ) {
-              keys.push(prop.name.getText(sourceFile));
+              keys.push(prop.getName());
             }
           }
         }
       }
-    }
-    // チェーンメソッド (e.g. z.object({...}).optional()) の場合、内側を探索
-    if (ts.isCallExpression(n)) {
-      visit(n.expression);
+      // チェーンメソッド (e.g. z.object({...}).optional()) の場合、内側を探索
+      visit(expr);
     }
   }
 
@@ -74,39 +72,19 @@ function extractSchemaFromTs(
   filePath: string,
   content: string,
 ): { schemaType: string; hasSchema: boolean; definedKeys: string[] } {
-  const sourceFile = ts.createSourceFile(
-    filePath,
-    content,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  const sourceFile = project.createSourceFile(filePath, content, {
+    overwrite: true,
+  });
 
-  let schemaNode: ts.Expression | undefined;
+  const schemaDeclaration = sourceFile.getVariableDeclaration('schema');
 
-  function findSchema(node: ts.Node) {
-    if (
-      ts.isVariableStatement(node) &&
-      node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)
-    ) {
-      for (const decl of node.declarationList.declarations) {
-        if (decl.name.getText(sourceFile) === 'schema' && decl.initializer) {
-          schemaNode = decl.initializer;
-          break;
-        }
-      }
+  if (schemaDeclaration?.isExported()) {
+    const schemaInitializer = schemaDeclaration.getInitializer();
+    if (schemaInitializer && schemaInitializer instanceof Expression) {
+      const typeStr = zodToTs(schemaInitializer);
+      const definedKeys = getZodObjectKeys(schemaInitializer);
+      return { schemaType: typeStr, hasSchema: true, definedKeys };
     }
-    if (!schemaNode) {
-      ts.forEachChild(node, findSchema);
-    }
-  }
-
-  findSchema(sourceFile);
-
-  if (schemaNode) {
-    // zodToTs を使って型文字列に変換
-    const typeStr = zodToTs(schemaNode, sourceFile);
-    const definedKeys = getZodObjectKeys(schemaNode, sourceFile);
-    return { schemaType: typeStr, hasSchema: true, definedKeys };
   }
 
   return { schemaType: '{}', hasSchema: false, definedKeys: [] };
@@ -123,9 +101,6 @@ function extractSchema(filePath: string): {
   const content = fs.readFileSync(filePath, 'utf-8');
   if (filePath.endsWith('.vue')) {
     const { descriptor } = parse(content);
-    // <script> または <script setup> を探す
-    // 注: setup内で export const schema はできないため、
-    // Vueの場合は通常の <script> ブロックで export const schema を書く想定
     const scriptContent =
       descriptor.script?.content ?? descriptor.scriptSetup?.content;
 
@@ -272,7 +247,7 @@ function generateRoutesContent(
 
       if (missingPathParams.length > 0) {
         const pathSchemaObj = missingPathParams
-          .map((p) => `${p}: z.string()`)
+          .map((p) => `${p}: z.string()`) // ts-morph uses .getText() which returns the string representation of the node.
           .join(', ');
         schemaExpression = `(${schemaExpression}).and(z.object({ ${pathSchemaObj} }))`;
       }
@@ -303,7 +278,7 @@ function generateRoutesContent(
         if (segment.startsWith('[') && segment.endsWith(']')) {
           return '([^/]+)';
         }
-        return segment.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+        return segment.replace(/[.+?^${}()|[\\]/g, '\\$&');
       });
       const pattern = `^${patternSegments.join('\\/')}$`;
 
