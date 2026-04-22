@@ -114,10 +114,31 @@ function parseZodNode(node: Node, seen: Set<string>): ZodMeta {
 
       // --- Primitives & Creators ---
       const validationMethods = new Set([
-        'min', 'max', 'length', 'email', 'url', 'uuid', 'cuid', 'cuid2', 'ulid',
-        'regex', 'includes', 'startsWith', 'endsWith', 'datetime', 'ip', 'trim',
-        'toLowerCase', 'toUpperCase', 'refine', 'superRefine', 'transform',
-        'catch', 'describe', 'brand', 'readonly',
+        'min',
+        'max',
+        'length',
+        'email',
+        'url',
+        'uuid',
+        'cuid',
+        'cuid2',
+        'ulid',
+        'regex',
+        'includes',
+        'startsWith',
+        'endsWith',
+        'datetime',
+        'ip',
+        'trim',
+        'toLowerCase',
+        'toUpperCase',
+        'refine',
+        'superRefine',
+        'transform',
+        'catch',
+        'describe',
+        'brand',
+        'readonly',
       ]);
 
       if (validationMethods.has(methodName)) {
@@ -225,7 +246,10 @@ function parseZodNode(node: Node, seen: Set<string>): ZodMeta {
 /**
  * z.object({ ... }) の中身を解析
  */
-function parseZodObject(node: ObjectLiteralExpression, seen: Set<string>): string {
+function parseZodObject(
+  node: ObjectLiteralExpression,
+  seen: Set<string>,
+): string {
   const props: string[] = [];
 
   for (const prop of node.getProperties()) {
