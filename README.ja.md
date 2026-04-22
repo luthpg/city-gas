@@ -10,7 +10,7 @@
 ## ✨ 特徴
 
 * 🚀 **Universal**: ブラウザ (`window.history`) と GAS (`google.script.history`) の両環境で動作。環境を自動判定してアダプタを切り替えます。
-* 📂 **File-based Routing**: `src/pages` ディレクトリの構造に基づいてルートを自動生成。
+* 📂 **File-based Routing**: `src/pages` ディレクトリの構造に基づいてルートを自動生成。内部的には URL の `?page=...` クエリパラメータを利用して、GAS 環境の制約に対応した擬似的なパスルーティングを実現しています。
 * 🛡️ **Type Safety**: Zod スキーマでクエリパラメータを定義し、パスパラメータとクエリの両方に対して厳密な型チェックとバリデーションを提供。
 * 🤖 **Auto Generation**: Vite プラグインがルート定義と型定義 (`.d.ts`) を自動生成。`Maps` や `useParams` で強力な補完が効きます。
 * 🧩 **Nested Layouts**: `_layout`, `_root` などの特殊ファイルによる柔軟なレイアウトシステム。
@@ -34,70 +34,7 @@ yarn add @ciderjs/city-gas zod
 
 ---
 
-## 🚀 クイックスタート
-
-### 1. Vite 設定
-
-`vite.config.ts` にプラグインを追加します。これがファイル監視と型生成を行います。
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite';
-import { cityGasRouter } from '@ciderjs/city-gas/plugin';
-// フレームワークに合わせて選択
-import react from '@vitejs/plugin-react';
-// import vue from '@vitejs/plugin-vue';
-
-export default defineConfig({
-  plugins: [
-    react(), // or vue()
-    cityGasRouter({
-      pagesDir: 'src/pages', // デフォルトは 'src/pages'
-    }),
-  ],
-});
-```
-
-### 2. アプリケーションのエントリーポイント設定
-
-#### React の場合 (`src/main.tsx`)
-
-```tsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { createRouter } from '@ciderjs/city-gas';
-import { RouterProvider } from '@ciderjs/city-gas/react';
-// 自動生成されたルート定義をインポート
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
-
-// ルーターの初期化
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>,
-);
-```
-
-#### Vue の場合 (`src/main.ts`)
-
-```ts
-import { createApp } from 'vue';
-import { createRouter } from '@ciderjs/city-gas';
-import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
-
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-const app = createApp(RouterOutlet);
-
-app.use(createRouterPlugin(router));
-app.mount('#app');
-```
-
----
-
-## 📖 ルーティングガイド
+## 📖 共通ルーティングガイド
 
 ### ディレクトリ構造とマッピング
 
@@ -114,20 +51,18 @@ src/pages/
     └── [postId].tsx    -> "/posts/[postId]" (動的ルート)
 ```
 
-### 動的ルート (Dynamic Routes)
+> [!NOTE]
+> **同名ファイルと index の優先順位**
+> `src/pages/users.tsx` と `src/pages/users/index.tsx` の両方が存在する場合、子ディレクトリの `index.tsx` (`/users`) が優先してルートとして登録されます。親階層の同名ファイルは無視されます。
+
+### 動的ルート (Dynamic Routes) とパスパラメータ
 
 ファイル名を `[paramName].tsx` とすることで、パスパラメータを取得できます。
 
-```tsx
-// src/pages/users/[userId].tsx
-import { useParams } from '@ciderjs/city-gas/react';
-
-export default function UserPage() {
-  // 型安全: userId は string として推論されます
-  const { userId } = useParams('/users/[userId]');
-  return <div>User ID: {userId}</div>;
-}
-```
+> [!TIP]
+> **パスパラメータのスキーマ定義**
+> パスパラメータ（例：`[id]`）は、スキーマに記載しなくてもデフォルトで `z.string()` として扱われます。
+> もし数値として扱いたい場合など、スキーマ内で明示的に定義（例: `id: z.coerce.number()`）した場合は、ユーザーの定義が優先されます。
 
 ### ネストされたレイアウト
 
@@ -138,15 +73,70 @@ export default function UserPage() {
 * **`_404.tsx`**: 定義されていないルートにアクセスした際に表示されるコンポーネント。
 * **`_loading.tsx`**: ページ遷移中や初期化中に表示されるコンポーネント。
 
-**例: `src/pages/settings/_layout.tsx`**
+---
+
+## ⚛️ React ガイド
+
+### 1. Vite 設定
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    cityGasRouter(),
+  ],
+});
+```
+
+### 2. エントリーポイント (`src/main.tsx`)
+```tsx
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { createRouter } from '@ciderjs/city-gas';
+import { RouterProvider } from '@ciderjs/city-gas/react';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
+
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>,
+);
+```
+
+### 3. ページコンポーネントとスキーマ定義
+
+ページコンポーネントは `export default` で定義します。
+各ページファイルで `schema` をエクスポートすると、そのページが受け取るパラメータを定義できます。
 
 ```tsx
-// React Example
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+// src/pages/search/[categoryId].tsx
+import { z } from 'zod';
+import { useParams, useNavigate } from '@ciderjs/city-gas/react';
+
+// スキーマ定義
+export const schema = z.object({
+  q: z.string(),
+  pageIndex: z.coerce.number().optional(), // 'page' は予約語のため使用できません
+});
+
+export default function SearchPage() {
+  // パスパラメータ (categoryId) とクエリパラメータ (q, pageIndex) が型推論されます
+  const params = useParams('/search/[categoryId]');
+  const navigate = useNavigate();
+
   return (
-    <div className="settings-wrapper">
-      <aside>Settings Sidebar</aside>
-      <main>{children}</main>
+    <div>
+      <h1>Category: {params.categoryId}</h1>
+      <p>Search: {params.q}</p>
+      <button onClick={() => navigate('/search/[categoryId]', { categoryId: '1', q: 'react' })}>
+        検索
+      </button>
     </div>
   );
 }
@@ -154,50 +144,51 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
 ---
 
-## 🛡️ パラメータの定義とバリデーション (Zod)
+## 💚 Vue ガイド
 
-各ページファイルで `schema` をエクスポートすると、そのページが受け取るクエリパラメータを定義できます。
-定義されたスキーマは、ランタイムでのバリデーションと、静的な型生成の両方に使用されます。
+### 1. Vite 設定
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+import vue from '@vitejs/plugin-vue';
 
-### React の例
-
-```tsx
-// src/pages/search.tsx
-import { z } from 'zod';
-import { useParams } from '@ciderjs/city-gas/react';
-
-// スキーマ定義
-export const schema = z.object({
-  q: z.string(),
-  page: z.coerce.number().optional(), // URL文字列を数値に変換
-  sort: z.enum(['date', 'relevance']).optional(),
+export default defineConfig({
+  plugins: [
+    vue(),
+    cityGasRouter(),
+  ],
 });
-
-export default function SearchPage() {
-  // params は { q: string; page?: number; sort?: "date" | "relevance" } と型推論される
-  const params = useParams('/search');
-
-  return (
-    <div>
-      <h1>Search: {params.q}</h1>
-      <p>Page: {params.page ?? 1}</p>
-    </div>
-  );
-}
 ```
 
-### Vue の例
+### 2. エントリーポイント (`src/main.ts`)
+```ts
+import { createApp } from 'vue';
+import { createRouter } from '@ciderjs/city-gas';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
 
-> [!NOTE]
-> **Vue ユーザー向けの注意**
-> `<script setup>` 内では `export` ができないため、`schema` の定義は必ず通常の `<script>` ブロックを別途用意して行ってください。
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+const app = createApp(RouterOutlet);
+
+app.use(createRouterPlugin(router));
+app.mount('#app');
+```
+
+### 3. ページコンポーネントとスキーマ定義
+
+Vueの場合、`<script setup>` 内では型をエクスポートできないため、`schema` の定義は通常の `<script>` ブロックで行います。
 
 ```vue
 <script setup lang="ts">
-import { useParams } from '@ciderjs/city-gas/vue';
+import { useParams, useNavigate } from '@ciderjs/city-gas/vue';
 
-// setup 内でref化されたパラメータを利用
-const params = useParams('/search');
+const params = useParams('/search/[categoryId]');
+const navigate = useNavigate();
+
+const handleClick = () => {
+  navigate('/search/[categoryId]', { categoryId: '1', q: 'vue' });
+};
 </script>
 
 <script lang="ts">
@@ -205,72 +196,22 @@ import { z } from 'zod';
 
 export const schema = z.object({
   q: z.string(),
-  page: z.coerce.number().optional(),
-  sort: z.enum(['date', 'relevance']).optional(),
+  pageIndex: z.coerce.number().optional(), // 'page' は予約語のため使用できません
 });
 </script>
 
 <template>
   <div>
-    <h1>Search: {{ params.q }}</h1>
-    <p>Page: {{ params.page ?? 1 }}</p>
+    <h1>Category: {{ params.categoryId }}</h1>
+    <p>Search: {{ params.q }}</p>
+    <button @click="handleClick">検索</button>
   </div>
 </template>
 ```
 
-> [!CAUTION]
-> **GAS環境でのURL長制限について**
-> Google Apps Script 環境では URL の長さに制限（約 2KB 程度）があります。
-> 本ライブラリはオブジェクトパラメータを JSON シリアライズして URL に含めるため、大きなデータを `params` に渡すとエラーの原因になります。
-> 大規模なデータを受け渡す場合は、`PropertiesService` や `CacheService`、あるいはグローバルな状態管理ライブラリ（Pinia, Recoil等）の利用を検討してください。
-
-> [!WARNING]
-> バリデーションに失敗した場合、ルーターは自動的に `_404` ページへ遷移します。
-
 ---
 
-## 🧭 ナビゲーション
-
-`useNavigate` フックを使用して、型安全にページ遷移を行います。
-
-### React
-
-```tsx
-import { useNavigate } from '@ciderjs/city-gas/react';
-
-const Component = () => {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    // 第1引数: ルート名（補完あり）
-    // 第2引数: パラメータ（schemaに基づき型チェックあり）
-    navigate('/search/[id]', { id: '1', q: 'city-gas', page: 1 });
-    
-    // オプションで replace も可能
-    // navigate('/', {}, { replace: true });
-  };
-
-  return <button onClick={handleClick}>Search</button>;
-};
-```
-
-### Vue
-
-```vue
-<script setup lang="ts">
-import { useNavigate } from '@ciderjs/city-gas/vue';
-
-const navigate = useNavigate();
-
-const handleClick = () => {
-  navigate('/search', { q: 'city-gas', page: 1 });
-};
-</script>
-```
-
----
-
-## ⚙️ API リファレンス
+## ⚙️ API リファレンス (共通)
 
 ### `createRouter(pages, options)`
 
@@ -315,32 +256,23 @@ router.beforeEach((to, from, next) => {
 ## ⚠️ 既知の制限事項
 
 ### スキーマ定義
-
-パラメータの `schema` エクスポートは、ページファイル内で **インライン** で定義する必要があります。
+パラメータの `schema` は、ページコンポーネントと **同一ファイル内** で定義・エクスポートする必要があります。
 Vite プラグインは静的解析 (AST) を使用して型を生成するため、外部ファイルからのスキーマのインポートはサポートされていません。
 
-**❌ 非サポート:**
+### 予約語 `page` について
+本ライブラリは、ファイルベースのルートを解決するために、内部でURLの `?page=...` クエリを利用しています。
+そのため、スキーマ定義の中で `page` というキー名をパラメータとして使用することはできません。ページネーションなどが必要な場合は、`pageIndex` などの別の名前を使用してください。
 
-```ts
-// src/pages/users.tsx
-import { userSchema } from '@/schemas';
-export const schema = userSchema; // ジェネレータが型を推論できません
-```
+### GAS環境でのURL長制限
+Google Apps Script 環境では URL の長さに制限（約 2KB 程度）があります。
+本ライブラリはオブジェクトパラメータを JSON シリアライズして URL に含めるため、大きなデータを `params` に渡すとエラーの原因になります。
+大規模なデータを受け渡す場合は、`PropertiesService` や `CacheService`、あるいはグローバルな状態管理ライブラリ（Pinia, Recoil等）の利用を検討してください。
 
-**✅ サポート:**
+### グローバルな副作用とクリーンアップ
+本ライブラリは、静的解析と型生成のためにルーティング対象の全ファイルを起動時にインポート（評価）します。そのため、以下の点に注意してください。
 
-```ts
-// src/pages/users.tsx
-import { z } from 'zod';
-export const schema = z.object({
-  id: z.string(),
-});
-```
-
-### パラメータの型
-
-パスパラメータ (例: `[id]`) は、デフォルトでは文字列として扱われます。
-スキーマ内でパスパラメータを別の型 (例: `z.number()`) として定義する場合は、URL からの生の値は文字列であるため、`z.coerce.number()` などの変換を使用してください。
+* **トップレベルでの副作用を避ける**: コンポーネント関数の外側（ファイルのトップレベル）に `console.log` や API 通信、イベントリスナーの登録を書くと、そのページを開いていなくてもアプリ起動時に即座に実行されてしまいます。初期化処理は必ずコンポーネント内の `useEffect` (React) や `onMounted` (Vue) などで行ってください。
+* **クリーンアップの徹底**: SPA の特性上、ページを遷移しても JS の状態は保持されます。`useEffect` や `onMounted` で `setInterval` やイベントリスナーを登録した場合は、必ずクリーンアップ関数を返し、意図しない裏側での動作（メモリリークや非対象ページでの発火）を防いでください。
 
 ---
 

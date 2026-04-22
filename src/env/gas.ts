@@ -42,14 +42,24 @@ export const gasAdapter: Adapter = {
   },
   getLocation: () => {
     return new Promise((resolve) => {
-      google.script.url.getLocation((loc) => {
-        resolve(locationToQuery(loc));
-      });
+      const { url } = google.script;
+      if (url == null) {
+        resolve('');
+      } else {
+        url.getLocation((loc) => {
+          resolve(locationToQuery(loc));
+        });
+      }
     });
   },
   onChange: (callback) => {
-    google.script.history.setChangeHandler((e) => {
-      callback(locationToQuery(e.location));
-    });
+    const { history } = google.script;
+    if (history == null) {
+      callback('');
+    } else {
+      history.setChangeHandler((e) => {
+        callback(locationToQuery(e.location));
+      });
+    }
   },
 };

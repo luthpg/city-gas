@@ -10,7 +10,7 @@
 ## ✨ Features
 
 * 🚀 **Universal**: Works in both browser (`window.history`) and GAS (`google.script.history`) environments, automatically switching adapters.
-* 📂 **File-based Routing**: Routes are automatically generated based on the structure of your `src/pages` directory.
+* 📂 **File-based Routing**: Routes are automatically generated based on the structure of your `src/pages` directory. Internally, it uses the `?page=...` query parameter to simulate path routing, conforming to the constraints of the GAS environment.
 * 🛡️ **Type Safety**: Use **Zod schemas** to define query parameters, providing strict type checking and runtime validation for both path and query parameters.
 * 🤖 **Auto Generation**: A Vite plugin automatically generates route definitions and type declarations (`.d.ts`), enabling powerful autocomplete for `Maps` and `useParams`.
 * 🧩 **Nested Layouts**: Flexible layout system using special files like `_layout` and `_root`.
@@ -34,70 +34,7 @@ yarn add @ciderjs/city-gas zod
 
 ---
 
-## 🚀 Quick Start
-
-### 1. Vite Configuration
-
-Add the plugin to your `vite.config.ts`. This handles file watching and type generation.
-
-```ts
-// vite.config.ts
-import { defineConfig } from 'vite';
-import { cityGasRouter } from '@ciderjs/city-gas/plugin';
-// Choose the plugin for your framework
-import react from '@vitejs/plugin-react';
-// import vue from '@vitejs/plugin-vue';
-
-export default defineConfig({
-  plugins: [
-    react(), // or vue()
-    cityGasRouter({
-      pagesDir: 'src/pages', // defaults to 'src/pages'
-    }),
-  ],
-});
-```
-
-### 2. Application Entry Point Setup
-
-#### For React (`src/main.tsx`)
-
-```tsx
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { createRouter } from '@ciderjs/city-gas';
-import { RouterProvider } from '@ciderjs/city-gas/react';
-// Import the automatically generated route definitions
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
-
-// Initialize the router
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-  </React.StrictMode>,
-);
-```
-
-#### For Vue (`src/main.ts`)
-
-```ts
-import { createApp } from 'vue';
-import { createRouter } from '@ciderjs/city-gas';
-import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
-import { pages, specialPages, dynamicRoutes } from './generated/routes';
-
-const router = createRouter(pages, { specialPages, dynamicRoutes });
-const app = createApp(RouterOutlet);
-
-app.use(createRouterPlugin(router));
-app.mount('#app');
-```
-
----
-
-## 📖 Routing Guide
+## 📖 General Routing Guide
 
 ### Directory Structure and Mapping
 
@@ -114,20 +51,18 @@ src/pages/
     └── [postId].tsx    -> "/posts/[postId]" (Dynamic Route)
 ```
 
-### Dynamic Routes
+> [!NOTE]
+> **Priority between index and same-name files**
+> If both `src/pages/users.tsx` and `src/pages/users/index.tsx` exist, the child directory's `index.tsx` (`/users`) takes priority and is registered as the route. The file in the parent directory is ignored.
+
+### Dynamic Routes and Path Parameters
 
 Use the naming convention `[paramName].tsx` to create dynamic routes and access path parameters.
 
-```tsx
-// src/pages/users/[userId].tsx
-import { useParams } from '@ciderjs/city-gas/react';
-
-export default function UserPage() {
-  // Type Safe: userId is inferred as string
-  const { userId } = useParams('/users/[userId]');
-  return <div>User ID: {userId}</div>;
-}
-```
+> [!TIP]
+> **Path Parameter Schema Definition**
+> Path parameters (e.g., `[id]`) are treated as `z.string()` by default, even if you do not explicitly declare them in your schema.
+> If you explicitly define them in the schema (e.g., `id: z.coerce.number()`), your custom definition takes priority.
 
 ### Nested Layouts
 
@@ -138,14 +73,72 @@ Special filenames are used to achieve hierarchical layouts.
 * **`_404.tsx`**: The component displayed when an undefined route is accessed.
 * **`_loading.tsx`**: The component displayed during page transitions or initialization.
 
-**Example: `src/pages/settings/_layout.tsx`**
+---
+
+## ⚛️ React Guide
+
+### 1. Vite Configuration
+
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    cityGasRouter(),
+  ],
+});
+```
+
+### 2. Application Entry Point (`src/main.tsx`)
+
 ```tsx
-// React Example
-export default function SettingsLayout({ children }: { children: React.ReactNode }) {
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { createRouter } from '@ciderjs/city-gas';
+import { RouterProvider } from '@ciderjs/city-gas/react';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
+
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <RouterProvider router={router} />
+  </React.StrictMode>,
+);
+```
+
+### 3. Page Component and Schema Definition
+
+A page component must be defined as the `default export`.
+By exporting a `schema` from your page component file, you can define the expected parameters.
+
+```tsx
+// src/pages/search/[categoryId].tsx
+import { z } from 'zod';
+import { useParams, useNavigate } from '@ciderjs/city-gas/react';
+
+// Schema definition
+export const schema = z.object({
+  q: z.string(),
+  pageIndex: z.coerce.number().optional(), // 'page' is reserved and cannot be used
+});
+
+export default function SearchPage() {
+  // Path parameter (categoryId) and query parameters (q, pageIndex) are inferred
+  const params = useParams('/search/[categoryId]');
+  const navigate = useNavigate();
+
   return (
-    <div className="settings-wrapper">
-      <aside>Settings Sidebar</aside>
-      <main>{children}</main>
+    <div>
+      <h1>Category: {params.categoryId}</h1>
+      <p>Search: {params.q}</p>
+      <button onClick={() => navigate('/search/[categoryId]', { categoryId: '1', q: 'react' })}>
+        Search
+      </button>
     </div>
   );
 }
@@ -153,49 +146,53 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
 ---
 
-## 🛡️ Parameter Definition and Validation (Zod)
+## 💚 Vue Guide
 
-By exporting a `schema` from your page component file, you can define the expected query parameters. This schema is used for both runtime validation and static type generation.
+### 1. Vite Configuration
 
-### React Example
+```ts
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { cityGasRouter } from '@ciderjs/city-gas/plugin';
+import vue from '@vitejs/plugin-vue';
 
-```tsx
-// src/pages/search.tsx
-import { z } from 'zod';
-import { useParams } from '@ciderjs/city-gas/react';
-
-// Schema definition
-export const schema = z.object({
-  q: z.string(),
-  page: z.coerce.number().optional(), // Coerce URL string to a number
-  sort: z.enum(['date', 'relevance']).optional(),
+export default defineConfig({
+  plugins: [
+    vue(),
+    cityGasRouter(),
+  ],
 });
-
-export default function SearchPage() {
-  // params is inferred as { q: string; page?: number; sort?: "date" | "relevance" }
-  const params = useParams('/search');
-
-  return (
-    <div>
-      <h1>Search: {params.q}</h1>
-      <p>Page: {params.page ?? 1}</p>
-    </div>
-  );
-}
 ```
 
-### Vue Example
+### 2. Application Entry Point (`src/main.ts`)
 
-> [!NOTE]
-> **Note for Vue Users**
-> Since `export` statements are not strictly supported within Vue's `<script setup>` syntax for this purpose, you must define and export the `schema` within a separate, standard `<script>` block.
+```ts
+import { createApp } from 'vue';
+import { createRouter } from '@ciderjs/city-gas';
+import { createRouterPlugin, RouterOutlet } from '@ciderjs/city-gas/vue';
+import { pages, specialPages, dynamicRoutes } from './generated/routes';
+
+const router = createRouter(pages, { specialPages, dynamicRoutes });
+const app = createApp(RouterOutlet);
+
+app.use(createRouterPlugin(router));
+app.mount('#app');
+```
+
+### 3. Page Component and Schema Definition
+
+Since `export` statements are not strictly supported within Vue's `<script setup>` syntax for this purpose, you must define and export the `schema` within a separate, standard `<script>` block.
 
 ```vue
 <script setup lang="ts">
-import { useParams } from '@ciderjs/city-gas/vue';
+import { useParams, useNavigate } from '@ciderjs/city-gas/vue';
 
-// Use params ref in setup
-const params = useParams('/search');
+const params = useParams('/search/[categoryId]');
+const navigate = useNavigate();
+
+const handleClick = () => {
+  navigate('/search/[categoryId]', { categoryId: '1', q: 'vue' });
+};
 </script>
 
 <script lang="ts">
@@ -203,72 +200,22 @@ import { z } from 'zod';
 
 export const schema = z.object({
   q: z.string(),
-  page: z.coerce.number().optional(),
-  sort: z.enum(['date', 'relevance']).optional(),
+  pageIndex: z.coerce.number().optional(), // 'page' is reserved and cannot be used
 });
 </script>
 
 <template>
   <div>
-    <h1>Search: {{ params.q }}</h1>
-    <p>Page: {{ params.page ?? 1 }}</p>
+    <h1>Category: {{ params.categoryId }}</h1>
+    <p>Search: {{ params.q }}</p>
+    <button @click="handleClick">Search</button>
   </div>
 </template>
 ```
 
-> [!CAUTION]
-> **URL Length Limitations (GAS Environment)**
-> Google Apps Script (GAS) environments have strict URL length limits (approximately 2KB).
-> Since this library serializes object parameters into JSON strings within the URL, passing large data structures may cause errors.
-> For large datasets, consider using `PropertiesService`, `CacheService`, or a global state management library instead of passing them as route parameters.
-
-> [!WARNING]
-> If validation fails, the router automatically redirects to the `_404` page.
-
 ---
 
-## 🧭 Navigation
-
-Use the `useNavigate` hook to perform type-safe page transitions.
-
-### React
-
-```tsx
-import { useNavigate } from '@ciderjs/city-gas/react';
-
-const Component = () => {
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    // 1st argument: Route name (with autocomplete)
-    // 2nd argument: Parameters (type-checked based on schema)
-    navigate('/search/[id]', { id: '1', q: 'city-gas', page: 1 });
-    
-    // Optional replace flag
-    // navigate('/', {}, { replace: true });
-  };
-
-  return <button onClick={handleClick}>Search</button>;
-};
-```
-
-### Vue
-
-```vue
-<script setup lang="ts">
-import { useNavigate } from '@ciderjs/city-gas/vue';
-
-const navigate = useNavigate();
-
-const handleClick = () => {
-  navigate('/search', { q: 'city-gas', page: 1 });
-};
-</script>
-```
-
----
-
-## ⚙️ API Reference
+## ⚙️ API Reference (General)
 
 ### `createRouter(pages, options)`
 
@@ -313,32 +260,23 @@ router.beforeEach((to, from, next) => {
 ## ⚠️ Known Limitations
 
 ### Schema Definition
-
-The `schema` export for parameters must be defined **inline** within the page file.
+The `schema` export for parameters must be defined **within the same file** as the page component.
 Importing schemas from external files is not supported because the Vite plugin uses static AST analysis to generate types.
 
-**❌ NOT Supported:**
+### The Reserved Word `page`
+This library internally uses the `?page=...` query parameter in the URL to resolve file-based routes.
+Therefore, you cannot use the key `page` as a parameter name in your schema definitions. If you need pagination, please use a different name such as `pageIndex`.
 
-```ts
-// src/pages/users.tsx
-import { userSchema } from '@/schemas';
-export const schema = userSchema; // The generator cannot infer the type
-```
+### URL Length Limitations in GAS
+Google Apps Script (GAS) environments have strict URL length limits (approximately 2KB).
+Since this library serializes object parameters into JSON strings within the URL, passing large data structures may cause errors.
+For large datasets, consider using `PropertiesService`, `CacheService`, or a global state management library instead of passing them as route parameters.
 
-**✅ Supported:**
+### Global Side Effects and Cleanup
+For static analysis and type generation, this library evaluates (imports) all page files at application startup. Please be aware of the following:
 
-```ts
-// src/pages/users.tsx
-import { z } from 'zod';
-export const schema = z.object({
-  id: z.string(),
-});
-```
-
-### Parameter Types
-
-Path parameters (e.g., [id]) are treated as string in default behavior.
-If you define a path parameter in your schema with a different type (e.g., z.number()), ensure you use z.coerce.number() or similar transformations, as the raw value from the URL is a string.
+* **Avoid Top-Level Side Effects**: Do not write `console.log`, API calls, or event listener registrations outside of your component function (at the file's top level). These will execute immediately when the application starts, even if the user never navigates to that page. Always place initialization logic inside `useEffect` (React) or `onMounted` (Vue).
+* **Always Clean Up**: Because it's a Single Page Application (SPA), JavaScript state persists across page transitions. If you register a `setInterval` or an event listener inside `useEffect` or `onMounted`, you must return a cleanup function to prevent memory leaks and unintended background execution on other pages.
 
 ---
 

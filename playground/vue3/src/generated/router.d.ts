@@ -15,7 +15,10 @@ export interface RouteParams {
   '/about': {};
   '/config': {};
   '/': {};
-  '/users/[userId]': { type?: number } & { userId: string };
+  '/users/[userId]': { type?: number } & Omit<
+    { userId: string },
+    keyof { type?: number }
+  >;
   '/users': {};
   '/users/show': { tab: string };
 }

@@ -51,7 +51,13 @@ function getZodObjectKeys(node: Expression): string[] {
               Node.isPropertyAssignment(prop) ||
               Node.isShorthandPropertyAssignment(prop)
             ) {
-              keys.push(prop.getName());
+              const key = prop.getName();
+              if (key === 'page') {
+                throw new Error(
+                  `[city-gas] Reserved word "page" is not allowed in schema definition.`,
+                );
+              }
+              keys.push(key);
             }
           }
         }
@@ -473,6 +479,10 @@ export async function generate(
         definedKeys,
       });
     } catch (e) {
+      // reserved word 等のバリデーションエラーはそのままスローする
+      if (e instanceof Error && e.message.startsWith('[city-gas]')) {
+        throw e;
+      }
       console.warn(`[city-gas] Failed to parse ${file} during init:`, e);
     }
   }
