@@ -340,6 +340,13 @@ export const schema = z.object({
 Path parameters (e.g., [id]) are treated as string in default behavior.
 If you define a path parameter in your schema with a different type (e.g., z.number()), ensure you use z.coerce.number() or similar transformations, as the raw value from the URL is a string.
 
+### Global Side Effects and Cleanup
+
+For static analysis and type generation, this library evaluates (imports) all page files at application startup. Please be aware of the following:
+
+* **Avoid Top-Level Side Effects**: Do not write `console.log`, API calls, or event listener registrations outside of your component function (at the file's top level). These will execute immediately when the application starts, even if the user never navigates to that page. Always place initialization logic inside `useEffect` (React) or `onMounted` (Vue).
+* **Always Clean Up**: Because it's a Single Page Application (SPA), JavaScript state persists across page transitions. If you register a `setInterval` or an event listener inside `useEffect` or `onMounted`, you must return a cleanup function to prevent memory leaks and unintended background execution on other pages.
+
 ---
 
 ## 🤝 Contribution Guide

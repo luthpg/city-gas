@@ -48,7 +48,7 @@ export function RouterOutlet<
     const pathParts = name.split('/').filter(Boolean);
     const parentPathParts = isIndex ? pathParts : pathParts.slice(0, -1);
 
-    let node = <PageComponent {...params} />;
+    let node = <PageComponent key={name} {...params} />;
 
     // Layout Nesting Logic
     for (let i = parentPathParts.length; i > 0; i--) {
