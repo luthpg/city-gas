@@ -114,6 +114,36 @@ src/pages/
     └── [postId].tsx    -> "/posts/[postId]" (Dynamic Route)
 ```
 
+### Basic Page Component
+
+A page component must be defined as the `default export`.
+
+**React Example (`src/pages/index.tsx`)**
+
+```tsx
+import React from 'react';
+
+export default function HomePage() {
+  return (
+    <div>
+      <h1>Home</h1>
+      <p>Welcome to the home page!</p>
+    </div>
+  );
+}
+```
+
+**Vue Example (`src/pages/index.vue`)**
+
+```vue
+<template>
+  <div>
+    <h1>Home</h1>
+    <p>Welcome to the home page!</p>
+  </div>
+</template>
+```
+
 ### Dynamic Routes
 
 Use the naming convention `[paramName].tsx` to create dynamic routes and access path parameters.
@@ -139,6 +169,7 @@ Special filenames are used to achieve hierarchical layouts.
 * **`_loading.tsx`**: The component displayed during page transitions or initialization.
 
 **Example: `src/pages/settings/_layout.tsx`**
+
 ```tsx
 // React Example
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -276,9 +307,9 @@ Creates the router instance.
 
 * `pages`: The page definitions imported from `.generated/routes.ts`.
 * `options`:
-    * `specialPages`: Definitions for special pages like `_root`, `_layout`, etc.
-    * `dynamicRoutes`: Definitions used for dynamic route matching.
-    * `defaultRouteName`: The default route (usually `'/'`).
+  * `specialPages`: Definitions for special pages like `_root`, `_layout`, etc.
+  * `dynamicRoutes`: Definitions used for dynamic route matching.
+  * `defaultRouteName`: The default route (usually `'/'`).
 
 ### `router` Instance
 
@@ -391,10 +422,10 @@ pnpm run check
 
 ### Pull Request Guidelines
 
-1.  Create a branch for each feature or bug fix.
-2.  Add tests corresponding to your changes.
-3.  Write clear and concise commit messages.
-4.  Ensure that `pnpm test` and `pnpm run check` pass before creating a PR.
+1. Create a branch for each feature or bug fix.
+2. Add tests corresponding to your changes.
+3. Write clear and concise commit messages.
+4. Ensure that `pnpm test` and `pnpm run check` pass before creating a PR.
 
 ---
 

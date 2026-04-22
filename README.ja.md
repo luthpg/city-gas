@@ -114,6 +114,36 @@ src/pages/
     └── [postId].tsx    -> "/posts/[postId]" (動的ルート)
 ```
 
+### ページコンポーネントの基本
+
+ページコンポーネントは `export default` で定義します。
+
+**React の例 (`src/pages/index.tsx`)**
+
+```tsx
+import React from 'react';
+
+export default function HomePage() {
+  return (
+    <div>
+      <h1>Home</h1>
+      <p>Welcome to the home page!</p>
+    </div>
+  );
+}
+```
+
+**Vue の例 (`src/pages/index.vue`)**
+
+```vue
+<template>
+  <div>
+    <h1>Home</h1>
+    <p>Welcome to the home page!</p>
+  </div>
+</template>
+```
+
 ### 動的ルート (Dynamic Routes)
 
 ファイル名を `[paramName].tsx` とすることで、パスパラメータを取得できます。
